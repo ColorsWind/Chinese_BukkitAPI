@@ -3,7 +3,7 @@ package org.bukkit.entity;
 /**
  * Represents an Ender Dragon
  */
-public interface EnderDragon extends ComplexLivingEntity {
+public interface EnderDragon extends ComplexLivingEntity, Boss {
 
     /**
      * Represents a phase or action that an Ender Dragon can perform.
@@ -15,7 +15,7 @@ public interface EnderDragon extends ComplexLivingEntity {
          */
         CIRCLING,
         /**
-         * The dragon will fly towards a targetted player and shoot a
+         * The dragon will fly towards a targeted player and shoot a
          * fireball when within 64 blocks.
          */
         STRAFING,

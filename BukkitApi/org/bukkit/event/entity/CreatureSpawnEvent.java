@@ -1,7 +1,6 @@
 package org.bukkit.event.entity;
 
 import org.bukkit.Location;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
@@ -101,13 +100,6 @@ public class CreatureSpawnEvent extends EntityEvent implements Cancellable {
          */
         LIGHTNING,
         /**
-         * 当生物由于玩家睡觉而生成时
-         *
-         * @deprecated 已不再使用
-         */
-        @Deprecated
-        BED,
-        /**
          * 当雪人被建造时
          */
         BUILD_SNOWMAN,
@@ -175,6 +167,19 @@ public class CreatureSpawnEvent extends EntityEvent implements Cancellable {
          * 由于末影珍珠的使用而生成.
          */
         ENDER_PEARL,
+        /**
+         * When an entity is spawned as a result of the entity it is being
+         * perched on jumping or being damaged
+         */
+        SHOULDER_ENTITY,
+        /**
+         * 当一个实体溺亡而生成时
+         */
+        DROWNED,
+        /**
+         * When an cow is spawned by shearing a mushroom cow
+         */
+        SHEARED,
         /**
          * 当生物被插件生成时
          */

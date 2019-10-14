@@ -15,7 +15,7 @@ public @interface EventHandler {
     /**
      * 定义事件的优先级。
      * <p>
-     * 优先级从高到低排列：
+     * 事件被执行的顺序（先后排列）：
      * <ol>
      * <li>LOWEST</li>
      * <li>LOW</li>
@@ -36,7 +36,7 @@ public @interface EventHandler {
      * <li>HIGHEST
      * <li>MONITOR
      * </ol>
-     * 
+     *
      * @return 优先级
      */
     EventPriority priority() default EventPriority.NORMAL;
@@ -51,7 +51,7 @@ public @interface EventHandler {
      * <p>
      * If ignoreCancelled is true and the event is cancelled, the method is
      * not called. Otherwise, the method is always called.
-     * 
+     *
      * @return 事件是否被忽略
      */
     boolean ignoreCancelled() default false;

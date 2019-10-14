@@ -3,7 +3,6 @@ package org.bukkit.event.entity;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
-import org.bukkit.util.NumberConversions;
 
 /**
  * Stores data for health-regain events
@@ -13,11 +12,6 @@ public class EntityRegainHealthEvent extends EntityEvent implements Cancellable 
     private boolean cancelled;
     private double amount;
     private final RegainReason regainReason;
-
-    @Deprecated
-    public EntityRegainHealthEvent(final Entity entity, final int amount, final RegainReason regainReason) {
-        this(entity, (double) amount, regainReason);
-    }
 
     public EntityRegainHealthEvent(final Entity entity, final double amount, final RegainReason regainReason) {
         super(entity);
@@ -35,36 +29,12 @@ public class EntityRegainHealthEvent extends EntityEvent implements Cancellable 
     }
 
     /**
-     * This method exists for legacy reasons to provide backwards
-     * compatibility. It will not exist at runtime and should not be used
-     * under any circumstances.
-     * 
-     * @return the (rounded) amount regained
-     */
-    @Deprecated
-    public int _INVALID_getAmount() {
-        return NumberConversions.ceil(getAmount());
-    }
-
-    /**
      * Sets the amount of regained health
      *
      * @param amount the amount of health the entity will regain
      */
     public void setAmount(double amount) {
         this.amount = amount;
-    }
-
-    /**
-     * This method exists for legacy reasons to provide backwards
-     * compatibility. It will not exist at runtime and should not be used
-     * under any circumstances.
-     * 
-     * @param amount the amount that will be regained
-     */
-    @Deprecated
-    public void _INVALID_setAmount(int amount) {
-        setAmount(amount);
     }
 
     @Override

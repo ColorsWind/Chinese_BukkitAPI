@@ -6,13 +6,14 @@ import java.util.NoSuchElementException;
 import org.bukkit.DyeColor;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.SerializableAs;
+import org.jetbrains.annotations.NotNull;
 
 @SerializableAs("Pattern")
 public class Pattern implements ConfigurationSerializable {
 
     private static final String COLOR = "color";
     private static final String PATTERN = "pattern";
-    
+
     private final DyeColor color;
     private final PatternType pattern;
 
@@ -26,11 +27,11 @@ public class Pattern implements ConfigurationSerializable {
      * @param color   图案的颜色
      * @param pattern 图案的类型
      */
-    public Pattern(DyeColor color, PatternType pattern) {
+    public Pattern(@NotNull DyeColor color, @NotNull PatternType pattern) {
         this.color = color;
         this.pattern = pattern;
     }
-    
+
     /**
      * 反序列化构造函数.
      * <p>
@@ -39,19 +40,20 @@ public class Pattern implements ConfigurationSerializable {
      *
      * @param map 从地图反序列化
      */
-    public Pattern(Map<String, Object> map) {
-        color = DyeColor.valueOf(getString(map, COLOR));
+    public Pattern(@NotNull Map<String, Object> map) {
+        color = DyeColor.legacyValueOf(getString(map, COLOR));
         pattern = PatternType.getByIdentifier(getString(map, PATTERN));
-    }    
+    }
 
-    private static String getString(Map<?,?> map, Object key) {
+    private static String getString(@NotNull Map<?, ?> map, @NotNull Object key) {
         Object str = map.get(key);
         if (str instanceof String) {
             return (String) str;
         }
         throw new NoSuchElementException(map + " does not contain " + key);
     }
-    
+
+    @NotNull
     @Override
     public Map<String, Object> serialize() {
         return ImmutableMap.<String, Object>of(
@@ -68,6 +70,7 @@ public class Pattern implements ConfigurationSerializable {
      *
      * @return 图案的颜色.
      */
+    @NotNull
     public DyeColor getColor() {
         return color;
     }
@@ -80,6 +83,7 @@ public class Pattern implements ConfigurationSerializable {
      *
      * @return 图案的类型
      */
+    @NotNull
     public PatternType getPattern() {
         return pattern;
     }

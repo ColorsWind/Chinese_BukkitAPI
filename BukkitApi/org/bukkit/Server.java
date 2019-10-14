@@ -10,13 +10,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import org.bukkit.Warning.WarningState;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarFlag;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.boss.KeyedBossBar;
 import org.bukkit.command.CommandException;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
@@ -29,7 +32,9 @@ import org.bukkit.help.HelpMap;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Merchant;
 import org.bukkit.inventory.Recipe;
+import org.bukkit.loot.LootTable;
 import org.bukkit.map.MapView;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.plugin.PluginManager;
@@ -40,8 +45,8 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.util.CachedServerIcon;
 
-import com.avaje.ebean.config.ServerConfig;
 import com.google.common.collect.ImmutableList;
+import org.bukkit.advancement.Advancement;
 import org.bukkit.generator.ChunkGenerator;
 
 import org.bukkit.inventory.ItemFactory;
@@ -98,22 +103,6 @@ public interface Server extends PluginMessageRecipient {
      * @return Bukkit版本
      */
     public String getBukkitVersion();
-
-    /**
-     * 以数组形式获得当前所有在线的玩家
-     * <p>
-     * 原文:
-     * Gets an array copy of all currently logged in players.
-     * <p>
-     * This method exists for legacy reasons to provide backwards
-     * compatibility. It will not exist at runtime and should not be used
-     * under any circumstances.
-     *
-     * @deprecated 被 {@link #getOnlinePlayers()}取代
-     * @return 一个当前所有在线玩家的数组
-     */
-    @Deprecated
-    public Player[] _INVALID_getOnlinePlayers();
 
     /**
      * 获得一个当前所有已登录玩家的集合.
@@ -539,11 +528,56 @@ public interface Server extends PluginMessageRecipient {
     public MapView createMap(World world);
 
     /**
+     * Create a new explorer map targeting the closest nearby structure of a
+     * given {@link StructureType}.
+     * <br>
+     * This method uses implementation default values for radius and
+     * findUnexplored (usually 100, true).
+     *
+     * @param world the world the map will belong to
+     * @param location the origin location to find the nearest structure
+     * @param structureType the type of structure to find
+     * @return a newly created item stack
+     *
+     * @see World#locateNearestStructure(org.bukkit.Location,
+     *      org.bukkit.StructureType, int, boolean)
+     */
+    public ItemStack createExplorerMap(World world, Location location, StructureType structureType);
+
+    /**
+     * Create a new explorer map targeting the closest nearby structure of a
+     * given {@link StructureType}.
+     * <br>
+     * This method uses implementation default values for radius and
+     * findUnexplored (usually 100, true).
+     *
+     * @param world the world the map will belong to
+     * @param location the origin location to find the nearest structure
+     * @param structureType the type of structure to find
+     * @param radius radius to search, see World#locateNearestStructure for more
+     *               information
+     * @param findUnexplored whether to find unexplored structures
+     * @return the newly created item stack
+     *
+     * @see World#locateNearestStructure(org.bukkit.Location,
+     *      org.bukkit.StructureType, int, boolean)
+     */
+    public ItemStack createExplorerMap(World world, Location location, StructureType structureType, int radius, boolean findUnexplored);
+
+    /**
      * 重新加载服务器并刷新设置和插件信息.
      * <p>
      * 原文:Reloads the server, refreshing settings and plugin information.
      */
     public void reload();
+
+    /**
+     * 只重载Minecraft游戏数据. 这包括自定义的进度和掉落表.
+     * <p>
+     * 原文:Reload only the Minecraft data for the server. This includes custom
+     * advancements and loot tables.
+     */
+    public void reloadData();  
 
     /**
      * 返回此服务器的日志记录.
@@ -583,16 +617,6 @@ public interface Server extends PluginMessageRecipient {
      * @throws CommandException 抛出执行期间出现的未捕获的异常
      */
     public boolean dispatchCommand(CommandSender sender, String commandLine) throws CommandException;
-
-    /**
-     * 通过{@link ServerConfig}给服务器填充给定的属性
-     * <p>
-     * 原文:Populates a given {@link ServerConfig} with values attributes to this
-     * server.
-     *
-     * @param config 填充给服务器的属性
-     */
-    public void configureDbConfig(ServerConfig config);
 
     /**
      * 向服务器添加一个配方
@@ -666,7 +690,7 @@ public interface Server extends PluginMessageRecipient {
     public void setSpawnRadius(int value);
 
     /**
-     * 获得服务器是否开启了生存模式.
+     * 获得服务器是否开启了正版模式.
      * <p>
      * 原文:Gets whether the Server is in online mode or not.
      *
@@ -693,23 +717,6 @@ public interface Server extends PluginMessageRecipient {
     public boolean isHardcore();
 
     /**
-     * Gets whether to use vanilla (false) or exact behaviour (true).
-     *
-     * <ul>
-     * <li>Vanilla behaviour: check for collisions and move the player if
-     *     needed.
-     * <li>Exact behaviour: spawn players exactly where they should be.
-     * </ul>
-     *
-     * @return true if exact location locations are used for spawning, false
-     *     for vanilla collision detection or otherwise
-     *
-     * @deprecated non standard and unused feature.
-     */
-    @Deprecated
-    public boolean useExactLoginLocation();
-
-    /**
      * 彻底关闭服务器.
      * <p>
      * 原文:Shutdowns the server, stopping everything.
@@ -717,14 +724,15 @@ public interface Server extends PluginMessageRecipient {
     public void shutdown();
 
     /**
-     * 向具有给定权限的玩家发送一条信息
+     * 向有给定权限的用户广播一条消息.
      * <p>
      * 原文:Broadcasts the specified message to every user with the given
      * permission name.
      *
-     * @param message 需要公告的信息
-     * @param permission 需要的权限{@link Permissible permissibles}
-     * @return 收到公告的玩家数量
+     * @param message 需要广播的消息
+     * @param permission 接受这条公告需要拥有的{@link Permissible
+     *     权限许可}
+     * @return 成功接收此消息的玩家数
      */
     public int broadcast(String message, String permission);
 
@@ -887,35 +895,53 @@ public interface Server extends PluginMessageRecipient {
     public HelpMap getHelpMap();
 
     /**
-     * 通过一个特定的类型来创建一个空的物品栏,如果这个类型是{@link InventoryType#CHEST},那么这个物品栏
-     * 的大小为27格(即0-26的slot可用),每个物品栏类型拥有其默认的大小
-     * <p>
-     * 原文:Creates an empty inventory of the specified type. If the type is {@link
-     * InventoryType#CHEST}, the new inventory has a size of 27; otherwise the
-     * new inventory has the normal size for its type.
+     * Creates an empty inventory with the specified type and title. If the type
+     * is {@link InventoryType#CHEST}, the new inventory has a size of 27;
+     * otherwise the new inventory has the normal size for its type.<br>
+     * It should be noted that some inventory types do not support titles and
+     * may not render with said titles on the Minecraft client.
+     * <br>
+     * {@link InventoryType#WORKBENCH} will not process crafting recipes if
+     * created with this method. Use
+     * {@link Player#openWorkbench(Location, boolean)} instead.
+     * <br>
+     * {@link InventoryType#ENCHANTING} will not process {@link ItemStack}s
+     * for possible enchanting results. Use
+     * {@link Player#openEnchanting(Location, boolean)} instead.
      *
-     * @param owner 该物品栏的拥有者,为null则表明无拥有者
-     * @param type 被创建的Inventory的类型
-     * @return Inventory实例
+     * @param owner the holder of the inventory, or null to indicate no holder
+     * @param type the type of inventory to create
+     * @return a new inventory
+     * @throws IllegalArgumentException if the {@link InventoryType} cannot be
+     * viewed.
+     *
+     * @see InventoryType#isCreatable()
      */
     Inventory createInventory(InventoryHolder owner, InventoryType type);
 
     /**
-     * 通过一个特定的类型和标题来创建一个空的物品栏,如果这个类型是{@link InventoryType#CHEST},那么这个物品栏
-     * 的大小为27格(即0-26的slot可用),每个物品栏类型拥有其默认的大小
-     * <p>
-     * 原文:Creates an empty inventory with the specified type and title. If the type
+     * Creates an empty inventory with the specified type and title. If the type
      * is {@link InventoryType#CHEST}, the new inventory has a size of 27;
      * otherwise the new inventory has the normal size for its type.<br>
-     * 注意:某些Inventory不支持标题,这些不支持标题的Inventory将不会在客户端渲染标题(即设置标题对这类Inventory无效)
-     * <p>
-     * 原文:It should be noted that some inventory types do not support titles and
+     * It should be noted that some inventory types do not support titles and
      * may not render with said titles on the Minecraft client.
+     * <br>
+     * {@link InventoryType#WORKBENCH} will not process crafting recipes if
+     * created with this method. Use
+     * {@link Player#openWorkbench(Location, boolean)} instead.
+     * <br>
+     * {@link InventoryType#ENCHANTING} will not process {@link ItemStack}s
+     * for possible enchanting results. Use
+     * {@link Player#openEnchanting(Location, boolean)} instead.
      *
-     * @param owner 该物品栏的拥有者,为null则表明无拥有者
-     * @param type 被创建的Inventory的类型
-     * @param title 被创建的Inventory的标题
-     * @return Inventory实例
+     * @param owner The holder of the inventory; can be null if there's no holder.
+     * @param type The type of inventory to create.
+     * @param title The title of the inventory, to be displayed when it is viewed.
+     * @return The new inventory.
+     * @throws IllegalArgumentException if the {@link InventoryType} cannot be
+     * viewed.
+     *
+     * @see InventoryType#isCreatable()
      */
     Inventory createInventory(InventoryHolder owner, InventoryType type, String title);
 
@@ -945,6 +971,15 @@ public interface Server extends PluginMessageRecipient {
      * @throws IllegalArgumentException 如果size不为9的倍数
      */
     Inventory createInventory(InventoryHolder owner, int size, String title) throws IllegalArgumentException;
+
+    /**
+     * Creates an empty merchant.
+     *
+     * @param title the title of the corresponding merchant inventory, displayed
+     * when the merchant inventory is viewed
+     * @return a new merchant
+     */
+    Merchant createMerchant(String title);
 
     /**
      * 获取一个区块最大可生成怪物数
@@ -1141,7 +1176,171 @@ public interface Server extends PluginMessageRecipient {
      * @param flags 创建的Boss血量条实例
      * @return 创建的Boss血量条实例
      */
-    BossBar createBossBar(String title, BarColor color, BarStyle style, BarFlag ...flags);
+    BossBar createBossBar(String title, BarColor color, BarStyle style, BarFlag... flags);
+
+    /**
+     * Creates a boss bar instance to display to players. The progress defaults
+     * to 1.0.
+     * <br>
+     * This instance is added to the persistent storage of the server and will
+     * be editable by commands and restored after restart.
+     *
+     * @param key the key of the boss bar that is used to access the boss bar
+     * @param title the title of the boss bar
+     * @param color the color of the boss bar
+     * @param style the style of the boss bar
+     * @param flags an optional list of flags to set on the boss bar
+     * @return the created boss bar
+     */
+    KeyedBossBar createBossBar(NamespacedKey key, String title, BarColor color, BarStyle style, BarFlag... flags);
+
+    /**
+     * Gets an unmodifiable iterator through all persistent bossbars.
+     * <ul>
+     *   <li><b>not</b> bound to a {@link org.bukkit.entity.Boss}</li>
+     *   <li>
+     *     <b>not</b> created using
+     *     {@link #createBossBar(String, BarColor, BarStyle, BarFlag...)}
+     *   </li>
+     * </ul>
+     *
+     * e.g. bossbars created using the bossbar command
+     *
+     * @return a bossbar iterator
+     */
+    Iterator<KeyedBossBar> getBossBars();
+
+    /**
+     * Gets the {@link KeyedBossBar} specified by this key.
+     * <ul>
+     *   <li><b>not</b> bound to a {@link org.bukkit.entity.Boss}</li>
+     *   <li>
+     *     <b>not</b> created using
+     *     {@link #createBossBar(String, BarColor, BarStyle, BarFlag...)}
+     *   </li>
+     * </ul>
+     *
+     * e.g. bossbars created using the bossbar command
+     *
+     * @param key unique bossbar key
+     * @return bossbar or null if not exists
+     */
+    KeyedBossBar getBossBar(NamespacedKey key);
+
+    /**
+     * Removes a {@link KeyedBossBar} specified by this key.
+     * <ul>
+     *   <li><b>not</b> bound to a {@link org.bukkit.entity.Boss}</li>
+     *   <li>
+     *     <b>not</b> created using
+     *     {@link #createBossBar(String, BarColor, BarStyle, BarFlag...)}
+     *   </li>
+     * </ul>
+     *
+     * e.g. bossbars created using the bossbar command
+     *
+     * @param key unique bossbar key
+     * @return true if removal succeeded or false
+     */
+    boolean removeBossBar(NamespacedKey key);
+
+    /**
+	 * 用UUID获取实体.
+	 * <p>
+     * 原文:Gets an entity on the server by its UUID
+     *
+     * @param uuid 实体的UUID
+     * @return 该UUID代表的实体，如果找不到为null
+     */
+    Entity getEntity(UUID uuid);
+
+    /**
+     * Get the advancement specified by this key.
+     *
+     * @param key unique advancement key
+     * @return advancement or null if not exists
+     */
+    Advancement getAdvancement(NamespacedKey key);
+
+    /**
+     * Get an iterator through all advancements. Advancements cannot be removed
+     * from this iterator,
+     *
+     * @return an advancement iterator
+     */
+    Iterator<Advancement> advancementIterator();
+
+    /**
+     * Creates a new {@link BlockData} instance for the specified Material, with
+     * all properties initialized to unspecified defaults.
+     *
+     * @param material the material
+     * @return new data instance
+     */
+    BlockData createBlockData(Material material);
+
+    /**
+     * Creates a new {@link BlockData} instance for the specified Material, with
+     * all properties initialized to unspecified defaults.
+     *
+     * @param material the material
+     * @param consumer consumer to run on new instance before returning
+     * @return new data instance
+     */
+    public BlockData createBlockData(Material material, Consumer<BlockData> consumer);
+
+    /**
+     * Creates a new {@link BlockData} instance with material and properties
+     * parsed from provided data.
+     *
+     * @param data data string
+     * @return new data instance
+     * @throws IllegalArgumentException if the specified data is not valid
+     */
+    BlockData createBlockData(String data) throws IllegalArgumentException;
+
+    /**
+     * Creates a new {@link BlockData} instance for the specified Material, with
+     * all properties initialized to unspecified defaults, except for those
+     * provided in data.
+     * <br>
+     * If <code>material</code> is specified, then the data string must not also
+     * contain the material.
+     *
+     * @param material the material
+     * @param data data string
+     * @return new data instance
+     * @throws IllegalArgumentException if the specified data is not valid
+     */
+    BlockData createBlockData(Material material, String data) throws IllegalArgumentException;
+
+    /**
+     * Gets a tag which has already been defined within the server. Plugins are
+     * suggested to use the concrete tags in {@link Tag} rather than this method
+     * which makes no guarantees about which tags are available, and may also be
+     * less performant due to lack of caching.
+     * <br>
+     * Tags will be searched for in an implementation specific manner, but a
+     * path consisting of namespace/tags/registry/key is expected.
+     * <br>
+     * Server implementations are allowed to handle only the registries
+     * indicated in {@link Tag}.
+     *
+     * @param <T> type of the tag
+     * @param registry the tag registry to look at
+     * @param tag the name of the tag
+     * @param clazz the class of the tag entries
+     * @return the tag or null
+     */
+    <T extends Keyed> Tag<T> getTag(String registry, NamespacedKey tag, Class<T> clazz);
+
+    /**
+     * Gets the specified {@link LootTable}.
+     *
+     * @param key the name of the LootTable
+     * @return the LootTable, or null if no LootTable is found with that name
+     */
+    LootTable getLootTable(NamespacedKey key);
 
     /**
      * @see UnsafeValues

@@ -12,69 +12,67 @@ public enum DyeColor {
     /**
      * 代表白色染料.
      */
-    WHITE(0x0, 0xF, Color.WHITE, Color.fromRGB(0xF0F0F0)),
+    WHITE(0x0, 0xF, Color.fromRGB(0xF9FFFE), Color.fromRGB(0xF0F0F0)),
     /**
      * 代表橙色染料.
      */
-    ORANGE(0x1, 0xE, Color.fromRGB(0xD87F33), Color.fromRGB(0xEB8844)),
+    ORANGE(0x1, 0xE, Color.fromRGB(0xF9801D), Color.fromRGB(0xEB8844)),
     /**
      * 代表品红色染料.
      */
-    MAGENTA(0x2, 0xD, Color.fromRGB(0xB24CD8), Color.fromRGB(0xC354CD)),
+    MAGENTA(0x2, 0xD, Color.fromRGB(0xC74EBD), Color.fromRGB(0xC354CD)),
     /**
      * 代表淡蓝色染料.
      */
-    LIGHT_BLUE(0x3, 0xC, Color.fromRGB(0x6699D8), Color.fromRGB(0x6689D3)),
+    LIGHT_BLUE(0x3, 0xC, Color.fromRGB(0x3AB3DA), Color.fromRGB(0x6689D3)),
     /**
      * 代表黄色染料.
      */
-    YELLOW(0x4, 0xB, Color.fromRGB(0xE5E533), Color.fromRGB(0xDECF2A)),
+    YELLOW(0x4, 0xB, Color.fromRGB(0xFED83D), Color.fromRGB(0xDECF2A)),
     /**
      * 代表黄绿色染料.
      */
-    LIME(0x5, 0xA, Color.fromRGB(0x7FCC19), Color.fromRGB(0x41CD34)),
+    LIME(0x5, 0xA, Color.fromRGB(0x80C71F), Color.fromRGB(0x41CD34)),
     /**
      * 代表粉色染料.
      */
-    PINK(0x6, 0x9, Color.fromRGB(0xF27FA5), Color.fromRGB(0xD88198)),
+    PINK(0x6, 0x9, Color.fromRGB(0xF38BAA), Color.fromRGB(0xD88198)),
     /**
      * 代表灰色染料.
      */
-    GRAY(0x7, 0x8, Color.fromRGB(0x4C4C4C), Color.fromRGB(0x434343)),
+    GRAY(0x7, 0x8, Color.fromRGB(0x474F52), Color.fromRGB(0x434343)),
     /**
-     * 代表银色染料.
-     * <p>
-     * 译注:Minecraft Wiki中没有“银色染料”的说法，估计是淡灰色染料.
+     * 代表淡灰色染料.
      */
-    SILVER(0x8, 0x7, Color.fromRGB(0x999999), Color.fromRGB(0xABABAB)),
+    LIGHT_GRAY(0x8, 0x7, Color.fromRGB(0x9D9D97), Color.fromRGB(0xABABAB)),
     /**
      * 代表青色染料.
      */
-    CYAN(0x9, 0x6, Color.fromRGB(0x4C7F99), Color.fromRGB(0x287697)),
+    CYAN(0x9, 0x6, Color.fromRGB(0x169C9C), Color.fromRGB(0x287697)),
     /**
      * 代表紫色染料.
      */
-    PURPLE(0xA, 0x5, Color.fromRGB(0x7F3FB2), Color.fromRGB(0x7B2FBE)),
+    PURPLE(0xA, 0x5, Color.fromRGB(0x8932B8), Color.fromRGB(0x7B2FBE)),
     /**
      * 代表蓝色染料.
      */
-    BLUE(0xB, 0x4, Color.fromRGB(0x334CB2), Color.fromRGB(0x253192)),
+    BLUE(0xB, 0x4, Color.fromRGB(0x3C44AA), Color.fromRGB(0x253192)),
     /**
      * 代表棕色染料.
      */
-    BROWN(0xC, 0x3, Color.fromRGB(0x664C33), Color.fromRGB(0x51301A)),
+    BROWN(0xC, 0x3, Color.fromRGB(0x835432), Color.fromRGB(0x51301A)),
     /**
      * 代表绿色染料.
      */
-    GREEN(0xD, 0x2, Color.fromRGB(0x667F33), Color.fromRGB(0x3B511A)),
+    GREEN(0xD, 0x2, Color.fromRGB(0x5E7C16), Color.fromRGB(0x3B511A)),
     /**
      * 代表红色染料.
      */
-    RED(0xE, 0x1, Color.fromRGB(0x993333), Color.fromRGB(0xB3312C)),
+    RED(0xE, 0x1, Color.fromRGB(0xB02E26), Color.fromRGB(0xB3312C)),
     /**
      * 代表黑色染料.
      */
-    BLACK(0xF, 0x0, Color.fromRGB(0x191919), Color.fromRGB(0x1E1B1B));
+    BLACK(0xF, 0x0, Color.fromRGB(0x1D1D21), Color.fromRGB(0x1E1B1B));
 
     private final byte woolData;
     private final byte dyeData;
@@ -93,22 +91,6 @@ public enum DyeColor {
     }
 
     /**
-     * 获取相关值(羊毛)的数据表示的颜色.
-     * <p>
-     * 原文:
-     * Gets the associated (wool) data value representing this color.
-     *
-     * @return 包含这种颜色(羊毛)的数据值字节
-     * @deprecated 这个名称具有误导性.但这将意味着{@link Material#INK_SACK}使用{@link Material#WOOL}.
-     * @see #getWoolData()
-     * @see #getDyeData()
-     */
-    @Deprecated
-    public byte getData() {
-        return getWoolData();
-    }
-
-    /**
      * 获取这个颜色代表的相关羊毛的数据值.
      * <p>
      * 原文:
@@ -116,7 +98,7 @@ public enum DyeColor {
      *
      * @return 包含这种颜色的羊毛的数据值字节
      * @see #getDyeData()
-     * @deprecated 魔法值
+     * @deprecated 不安全的参数
      */
     @Deprecated
     public byte getWoolData() {
@@ -124,7 +106,7 @@ public enum DyeColor {
     }
 
     /**
-     * 获取代表这种颜色的染料相关的数据值.
+     * 获取代表这种颜色的染料数据值.
      * <p>
      * 原文:
      * Gets the associated dye data value representing this color.
@@ -163,24 +145,6 @@ public enum DyeColor {
     }
 
     /**
-     * 获取给定的(羊毛)数据值的染料颜色.
-     * <p>
-     * 原文:
-     * Gets the DyeColor with the given (wool) data value.
-     *
-     * @param data 要获取的(羊毛)数据值
-     * @return The {@link DyeColor} representing the given value, or null if
-     *     it doesn't exist
-     * @deprecated 这个名称具有误导性.但这将意味着{@link Material#INK_SACK}使用{@link Material#WOOL}.
-     * @see #getByDyeData(byte)
-     * @see #getByWoolData(byte)
-     */
-    @Deprecated
-    public static DyeColor getByData(final byte data) {
-        return getByWoolData(data);
-    }
-
-    /**
      * 获取给定的羊毛数据值的染料颜色.
      * <p>
      * 原文:
@@ -201,7 +165,7 @@ public enum DyeColor {
     }
 
     /**
-     * 获取给定的染料数据值的染料颜色.
+     * 用给定的数据值获取DyeColor.
      * <p>
      * 原文:
      * Gets the DyeColor with the given dye data value.
@@ -209,7 +173,7 @@ public enum DyeColor {
      * @param data 要获取的染料数据值
      * @return 给定值代表的染料颜色({@link DyeColor})，如果不存在则为null
      * @see #getByWoolData(byte)
-     * @deprecated 魔法值
+     * @deprecated 不安全的参数
      */
     @Deprecated
     public static DyeColor getByDyeData(final byte data) {
@@ -244,6 +208,18 @@ public enum DyeColor {
      */
     public static DyeColor getByFireworkColor(final Color color) {
         return BY_FIREWORK.get(color);
+    }
+
+    /**
+     * Gets the DyeColor for the given name, possibly doing legacy transformations.
+     *
+     * @param name dye name
+     * @return dye color
+     * @deprecated legacy use only
+     */
+    @Deprecated
+    public static DyeColor legacyValueOf(String name) {
+        return "SILVER".equals(name) ? DyeColor.LIGHT_GRAY : DyeColor.valueOf(name);
     }
 
     static {

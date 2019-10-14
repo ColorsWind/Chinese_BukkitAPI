@@ -10,13 +10,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import org.bukkit.Warning.WarningState;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarFlag;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.boss.KeyedBossBar;
 import org.bukkit.command.CommandException;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
@@ -29,7 +32,9 @@ import org.bukkit.help.HelpMap;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Merchant;
 import org.bukkit.inventory.Recipe;
+import org.bukkit.loot.LootTable;
 import org.bukkit.map.MapView;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.plugin.PluginManager;
@@ -39,8 +44,8 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.util.CachedServerIcon;
 
-import com.avaje.ebean.config.ServerConfig;
 import com.google.common.collect.ImmutableList;
+import org.bukkit.advancement.Advancement;
 import org.bukkit.generator.ChunkGenerator;
 
 import org.bukkit.inventory.ItemFactory;
@@ -125,24 +130,6 @@ public final class Bukkit {
     }
 
     /**
-     * 获取在线的所有玩家的数组副本.  
-     * 此方法的设计是为了对低版本服务器提供向下兼容性, 它不应该在任何情形下被使用. 
-     * <p>
-     * 原文:
-     * Gets an array copy of all currently logged in players.
-     * This method exists for legacy reasons to provide backwards
-     * compatibility. It will not exist at runtime and should not be used
-     * under any circumstances.
-     *
-     * @deprecated 被 {@link #getOnlinePlayers()} 取代
-     * @return 所有在线玩家的数组
-     */
-    @Deprecated
-    public static Player[] _INVALID_getOnlinePlayers() {
-        return server._INVALID_getOnlinePlayers();
-    }
-
-    /**
      * 获取所有在线玩家的集合的视图. 
      * <p>
      * 此 {@linkplain Collections#unmodifiableCollection(Collection) 视图} is a reused
@@ -160,7 +147,7 @@ public final class Bukkit {
      * {@link Entity#teleport(Location) 传送}, 
      * {@link Player#setHealth(double) 死亡}, 
      * {@link Player#kickPlayer(String) 踢出} 等操作的结果是未知的 (没有罗列完全). 
-     * 任何对这个集合的异步操作都是安全的. 
+     * 任何对这个集合的异步操作都是不安全的. 
      * <p>
      * For safe consequential iteration or mimicking the old array behavior,
      * using {@link Collection#toArray(Object[])} is recommended. For making
@@ -271,7 +258,7 @@ public final class Bukkit {
     public static String getServerId() {
         return server.getServerId();
     }
-    
+
     /**
      * 获取默认世界的世界类型 (level-type 设置). 
      * <p>
@@ -720,12 +707,63 @@ public final class Bukkit {
     }
 
     /**
-     * 重载服务器, 刷新设置与插件信息. 
+     * Create a new explorer map targeting the closest nearby structure of a
+     * given {@link StructureType}.
+     * <br>
+     * This method uses implementation default values for radius and
+     * findUnexplored (usually 100, true).
+     *
+     * @param world the world the map will belong to
+     * @param location the origin location to find the nearest structure
+     * @param structureType the type of structure to find
+     * @return a newly created item stack
+     *
+     * @see World#locateNearestStructure(org.bukkit.Location,
+     *      org.bukkit.StructureType, int, boolean)
+     */
+    public static ItemStack createExplorerMap(World world, Location location, StructureType structureType) {
+        return server.createExplorerMap(world, location, structureType);
+    }
+
+    /**
+     * Create a new explorer map targeting the closest nearby structure of a
+     * given {@link StructureType}.
+     * <br>
+     * This method uses implementation default values for radius and
+     * findUnexplored (usually 100, true).
+     *
+     * @param world the world the map will belong to
+     * @param location the origin location to find the nearest structure
+     * @param structureType the type of structure to find
+     * @param radius radius to search, see World#locateNearestStructure for more
+     *               information
+     * @param findUnexplored whether to find unexplored structures
+     * @return the newly created item stack
+     *
+     * @see World#locateNearestStructure(org.bukkit.Location,
+     *      org.bukkit.StructureType, int, boolean)
+     */
+    public static ItemStack createExplorerMap(World world, Location location, StructureType structureType, int radius, boolean findUnexplored) {
+        return server.createExplorerMap(world, location, structureType, radius, findUnexplored);
+    }
+
+    /**
+     * 重载服务器, 刷新设置与插件信息.
      * <p>
      * 原文: Reloads the server, refreshing settings and plugin information.
      */
     public static void reload() {
         server.reload();
+    }
+
+    /**
+     * 只重载Minecraft游戏数据. 这包括自定义的进度和掉落表.
+     * <p>
+     * 原文:Reload only the Minecraft data for the server. This includes custom
+     * advancements and loot tables.
+     */
+    public static void reloadData() {
+        server.reloadData();
     }
 
     /**
@@ -759,7 +797,7 @@ public final class Bukkit {
     public static void savePlayers() {
         server.savePlayers();
     }
-    
+
     /**
      * Dispatches a command on this server, and executes it if found.
      *
@@ -772,16 +810,6 @@ public final class Bukkit {
      */
     public static boolean dispatchCommand(CommandSender sender, String commandLine) throws CommandException {
         return server.dispatchCommand(sender, commandLine);
-    }
-
-    /**
-     * Populates a given {@link ServerConfig} with values attributes to this
-     * server.
-     *
-     * @param config the server config to populate
-     */
-    public static void configureDbConfig(ServerConfig config) {
-        server.configureDbConfig(config);
     }
 
     /**
@@ -835,7 +863,7 @@ public final class Bukkit {
     public static void resetRecipes() {
         server.resetRecipes();
     }
-    
+
     /**
      * 获取服务器配置定义的命令别名列表.
      * <p>
@@ -870,7 +898,7 @@ public final class Bukkit {
     }
 
     /**
-     * 获取服务器是否处于正版模式.
+     * 获取服务器的正版准入设定.
      * <p>
      * 原文:Gets whether the Server is in online mode or not.
      *
@@ -903,25 +931,6 @@ public final class Bukkit {
     }
 
     /**
-     * Gets whether to use vanilla (false) or exact behaviour (true).
-     *
-     * <ul>
-     * <li>Vanilla behaviour: check for collisions and move the player if
-     *     needed.
-     * <li>Exact behaviour: spawn players exactly where they should be.
-     * </ul>
-     *
-     * @return true if exact location locations are used for spawning, false
-     *     for vanilla collision detection or otherwise
-     *
-     * @deprecated non standard and unused feature.
-     */
-    @Deprecated
-    public static boolean useExactLoginLocation() {
-        return server.useExactLoginLocation();
-    }
- 
-    /**
      * 关闭服务器，停止一切在运行的东西.
      * <p>
      * 原文:Shutdowns the server, stopping everything.
@@ -931,13 +940,15 @@ public final class Bukkit {
     }
 
     /**
-     * Broadcasts the specified message to every user with the given
+     * 向有给定权限的用户广播一条消息.
+     * <p>
+     * 原文:Broadcasts the specified message to every user with the given
      * permission name.
      *
-     * @param message message to broadcast
-     * @param permission the required permission {@link Permissible
-     *     permissibles} must have to receive the broadcast
-     * @return number of message recipients
+     * @param message 要广播的消息
+     * @param permission 接受这条公告需要拥有的{@link Permissible
+     *     权限许可}
+     * @return 成功接收此消息的玩家数
      */
     public static int broadcast(String message, String permission) {
         return server.broadcast(message, permission);
@@ -983,7 +994,7 @@ public final class Bukkit {
     }
 
     /**
-     * 获取包含了已被封禁的IP地址的集合.
+     * 获取已被封禁的IP地址.
      * <p>
      * 原文:Gets a set containing all current IPs that are banned.
      *
@@ -1016,7 +1027,7 @@ public final class Bukkit {
     }
 
     /**
-     * 获取包含了已被封禁的玩家的集合.
+     * 获取已被封禁的玩家.
      * <p>
      * 原文:Gets a set containing all banned players.
      *
@@ -1039,16 +1050,16 @@ public final class Bukkit {
      * @param type 要获取的封禁列表的类型，不能为null
      * @return 指定类型的封禁列表
      */
-    public static BanList getBanList(BanList.Type type){
+    public static BanList getBanList(BanList.Type type) {
         return server.getBanList(type);
     }
 
     /**
-     * 获取包含了所有OP的集合.
+     * 获取服务器的所有OP(管理员).
      * <p>
      * 原文:Gets a set containing all player operators.
      *
-     * @return 服务器OP集合
+     * @return 服务器OP
      */
     public static Set<OfflinePlayer> getOperators() {
         return server.getOperators();
@@ -1096,9 +1107,11 @@ public final class Bukkit {
     }
 
     /**
-     * Gets every player that has ever played on this server.
+     * 获取曾在此服务器游戏的玩家.
+     * <p>
+     * 原文:Gets every player that has ever played on this server.
      *
-     * @return an array containing all previous players
+     * @return 曾在此服务器游戏的玩家
      */
     public static OfflinePlayer[] getOfflinePlayers() {
         return server.getOfflinePlayers();
@@ -1123,13 +1136,27 @@ public final class Bukkit {
     }
 
     /**
-     * Creates an empty inventory of the specified type. If the type is {@link
-     * InventoryType#CHEST}, the new inventory has a size of 27; otherwise the
-     * new inventory has the normal size for its type.
+     * Creates an empty inventory with the specified type and title. If the type
+     * is {@link InventoryType#CHEST}, the new inventory has a size of 27;
+     * otherwise the new inventory has the normal size for its type.<br>
+     * It should be noted that some inventory types do not support titles and
+     * may not render with said titles on the Minecraft client.
+     * <br>
+     * {@link InventoryType#WORKBENCH} will not process crafting recipes if
+     * created with this method. Use
+     * {@link Player#openWorkbench(Location, boolean)} instead.
+     * <br>
+     * {@link InventoryType#ENCHANTING} will not process {@link ItemStack}s
+     * for possible enchanting results. Use
+     * {@link Player#openEnchanting(Location, boolean)} instead.
      *
      * @param owner the holder of the inventory, or null to indicate no holder
      * @param type the type of inventory to create
      * @return a new inventory
+     * @throws IllegalArgumentException if the {@link InventoryType} cannot be
+     * viewed.
+     *
+     * @see InventoryType#isCreatable()
      */
     public static Inventory createInventory(InventoryHolder owner, InventoryType type) {
         return server.createInventory(owner, type);
@@ -1141,11 +1168,23 @@ public final class Bukkit {
      * otherwise the new inventory has the normal size for its type.<br>
      * It should be noted that some inventory types do not support titles and
      * may not render with said titles on the Minecraft client.
+     * <br>
+     * {@link InventoryType#WORKBENCH} will not process crafting recipes if
+     * created with this method. Use
+     * {@link Player#openWorkbench(Location, boolean)} instead.
+     * <br>
+     * {@link InventoryType#ENCHANTING} will not process {@link ItemStack}s
+     * for possible enchanting results. Use
+     * {@link Player#openEnchanting(Location, boolean)} instead.
      *
      * @param owner The holder of the inventory; can be null if there's no holder.
      * @param type The type of inventory to create.
      * @param title The title of the inventory, to be displayed when it is viewed.
      * @return The new inventory.
+     * @throws IllegalArgumentException if the {@link InventoryType} cannot be
+     * viewed.
+     *
+     * @see InventoryType#isCreatable()
      */
     public static Inventory createInventory(InventoryHolder owner, InventoryType type, String title) {
         return server.createInventory(owner, type, title);
@@ -1180,6 +1219,17 @@ public final class Bukkit {
     }
 
     /**
+     * Creates an empty merchant.
+     *
+     * @param title the title of the corresponding merchant inventory, displayed
+     * when the merchant inventory is viewed
+     * @return a new merchant
+     */
+    public static Merchant createMerchant(String title) {
+        return server.createMerchant(title);
+    }
+
+    /**
      * Gets user-specified limit for number of monsters that can spawn in a
      * chunk.
      *
@@ -1190,10 +1240,13 @@ public final class Bukkit {
     }
 
     /**
+     * 获取用户指定的可以在一个区块内生成的动物的数量的限制.
+     * <p>
+     * 原文:
      * Gets user-specified limit for number of animals that can spawn in a
      * chunk.
      *
-     * @return the animal spawn limit
+     * @return 同一区块内的动物数量限制
      */
     public static int getAnimalSpawnLimit() {
         return server.getAnimalSpawnLimit();
@@ -1208,7 +1261,7 @@ public final class Bukkit {
     public static int getWaterAnimalSpawnLimit() {
         return server.getWaterAnimalSpawnLimit();
     }
-    
+
     /**
      * Gets user-specified limit for number of ambient mobs that can spawn in
      * a chunk.
@@ -1236,11 +1289,11 @@ public final class Bukkit {
     }
 
     /**
-     * 获取在客户端服务器列表里显示的消息.
+     * 获取在客户端服务器列表里显示的消息(服务器的欢迎消息，又称message of the day).
      * <p>
      * 原文:Gets the message that is displayed on the server list.
      *
-     * @return 服务器的每日消息
+     * @return 服务器motd
      */
     public static String getMotd() {
         return server.getMotd();
@@ -1251,7 +1304,7 @@ public final class Bukkit {
      * <p>
      * 原文:Gets the default message that is displayed when the server is stopped.
      *
-     * @return 服务器关闭提示消息
+     * @return 服务器关闭提示消息内容
      */
     public static String getShutdownMessage() {
         return server.getShutdownMessage();
@@ -1334,21 +1387,26 @@ public final class Bukkit {
     }
 
     /**
-     * Set the idle kick timeout. Any players idle for the specified amount of
+     * 设置一个空闲超时阈值(IDLE_KICK). 玩家空闲达到这个特定的时间后会被自动踢出服务器.
+     * 如果设置为0，该功能将被关闭.
+     * <p>
+     * 原文: Set the idle kick timeout. Any players idle for the specified amount of
      * time will be automatically kicked.
      * <p>
      * A value of 0 will disable the idle kick timeout.
      *
-     * @param threshold the idle timeout in minutes
+     * @param threshold 玩家空闲时间阈值，以分钟为单位
      */
     public static void setIdleTimeout(int threshold) {
         server.setIdleTimeout(threshold);
     }
 
     /**
-     * Gets the idle kick timeout.
+     * 获取服务器空闲超时阈值(IDLE_KICK).
+     * <p>
+     * 原文: Gets the idle kick timeout.
      *
-     * @return the idle timeout in minutes
+     * @return 以分钟为单位的空闲超时阈值
      */
     public static int getIdleTimeout() {
         return server.getIdleTimeout();
@@ -1385,6 +1443,198 @@ public final class Bukkit {
      */
     public static BossBar createBossBar(String title, BarColor color, BarStyle style, BarFlag... flags) {
         return server.createBossBar(title, color, style, flags);
+    }
+
+    /**
+     * Creates a boss bar instance to display to players. The progress defaults
+     * to 1.0.
+     * <br>
+     * This instance is added to the persistent storage of the server and will
+     * be editable by commands and restored after restart.
+     *
+     * @param key the key of the boss bar that is used to access the boss bar
+     * @param title the title of the boss bar
+     * @param color the color of the boss bar
+     * @param style the style of the boss bar
+     * @param flags an optional list of flags to set on the boss bar
+     * @return the created boss bar
+     */
+    public static KeyedBossBar createBossBar(NamespacedKey key, String title, BarColor color, BarStyle style, BarFlag... flags) {
+        return server.createBossBar(key, title, color, style, flags);
+    }
+
+    /**
+     * Gets an unmodifiable iterator through all persistent bossbars.
+     * <ul>
+     *   <li><b>not</b> bound to a {@link org.bukkit.entity.Boss}</li>
+     *   <li>
+     *     <b>not</b> created using
+     *     {@link #createBossBar(String, BarColor, BarStyle, BarFlag...)}
+     *   </li>
+     * </ul>
+     *
+     * e.g. bossbars created using the bossbar command
+     *
+     * @return a bossbar iterator
+     */
+    public static Iterator<KeyedBossBar> getBossBars() {
+        return server.getBossBars();
+    }
+
+    /**
+     * Gets the {@link KeyedBossBar} specified by this key.
+     * <ul>
+     *   <li><b>not</b> bound to a {@link org.bukkit.entity.Boss}</li>
+     *   <li>
+     *     <b>not</b> created using
+     *     {@link #createBossBar(String, BarColor, BarStyle, BarFlag...)}
+     *   </li>
+     * </ul>
+     *
+     * e.g. bossbars created using the bossbar command
+     *
+     * @param key unique bossbar key
+     * @return bossbar or null if not exists
+     */
+    public static KeyedBossBar getBossBar(NamespacedKey key) {
+        return server.getBossBar(key);
+    }
+
+    /**
+     * Removes a {@link KeyedBossBar} specified by this key.
+     * <ul>
+     *   <li><b>not</b> bound to a {@link org.bukkit.entity.Boss}</li>
+     *   <li>
+     *     <b>not</b> created using
+     *     {@link #createBossBar(String, BarColor, BarStyle, BarFlag...)}
+     *   </li>
+     * </ul>
+     *
+     * e.g. bossbars created using the bossbar command
+     *
+     * @param key unique bossbar key
+     * @return true if removal succeeded or false
+     */
+    public static boolean removeBossBar(NamespacedKey key) {
+        return server.removeBossBar(key);
+    }
+
+    /**
+     * 用UUID获取实体.
+     * <p>
+     * 原文:Gets an entity on the server by its UUID
+     *
+     * @param uuid 实体的UUID
+     * @return 该UUID代表的实体，如果不存在为null
+     */
+    public static Entity getEntity(UUID uuid) {
+        return server.getEntity(uuid);
+    }
+
+    /**
+     * 通过Key获得特定的进度对象.
+     * <p>
+     * 原文: Get the advancement specified by this key.
+     *
+     * @param 寻找进度对象所需的key
+     * @return 一个进度对象. 如果它不存在，将返回null.
+     */
+    public static Advancement getAdvancement(NamespacedKey key) {
+        return server.getAdvancement(key);
+    }
+
+    /**
+     * 获取一个用以遍历所有进度的迭代器对象。
+     * 进度不能够从该迭代器上被删除。
+     * <p>
+     * 原文: Get an iterator through all advancements. Advancements cannot be removed
+     * from this iterator,
+     *
+     * @return 一个进度迭代器对象
+     */
+    public static Iterator<Advancement> advancementIterator() {
+        return server.advancementIterator();
+    }
+
+    /**
+     * Creates a new {@link BlockData} instance for the specified Material, with
+     * all properties initialized to unspecified defaults.
+     *
+     * @param material the material
+     * @return new data instance
+     */
+    public static BlockData createBlockData(Material material) {
+        return server.createBlockData(material);
+    }
+
+    /**
+     * Creates a new {@link BlockData} instance for the specified Material, with
+     * all properties initialized to unspecified defaults.
+     *
+     * @param material the material
+     * @param consumer consumer to run on new instance before returning
+     * @return new data instance
+     */
+    public static BlockData createBlockData(Material material, Consumer<BlockData> consumer) {
+        return server.createBlockData(material, consumer);
+    }
+
+    /**
+     * Creates a new {@link BlockData} instance with material and properties
+     * parsed from provided data.
+     *
+     * @param data data string
+     * @return new data instance
+     * @throws IllegalArgumentException if the specified data is not valid
+     */
+    public static BlockData createBlockData(String data) throws IllegalArgumentException {
+        return server.createBlockData(data);
+    }
+
+    /**
+     * Creates a new {@link BlockData} instance for the specified Material, with
+     * all properties initialized to unspecified defaults, except for those
+     * provided in data.
+     *
+     * @param material the material
+     * @param data data string
+     * @return new data instance
+     * @throws IllegalArgumentException if the specified data is not valid
+     */
+    public static BlockData createBlockData(Material material, String data) throws IllegalArgumentException {
+        return server.createBlockData(material, data);
+    }
+
+    /**
+     * Gets a tag which has already been defined within the server. Plugins are
+     * suggested to use the concrete tags in {@link Tag} rather than this method
+     * which makes no guarantees about which tags are available, and may also be
+     * less performant due to lack of caching.
+     * <br>
+     * Tags will be searched for in an implementation specific manner, but a
+     * path consisting of namespace/tags/registry/key is expected.
+     * <br>
+     * Server implementations are allowed to handle only the registries
+     * indicated in {@link Tag}.
+     *
+     * @param <T> type of the tag
+     * @param registry the tag registry to look at
+     * @param tag the name of the tag
+     * @param clazz the class of the tag entries
+     * @return the tag or null
+     */
+    public static <T extends Keyed> Tag<T> getTag(String registry, NamespacedKey tag, Class<T> clazz) {
+        return server.getTag(registry, tag, clazz);
+    }
+
+    /**
+     * Gets the specified {@link LootTable}.
+     *
+     * @param key the name of the LootTable
+     * @return the LootTable, or null if no LootTable is found with that name
+     */
+    public static LootTable getLootTable(NamespacedKey key) {
+        return server.getLootTable(key);
     }
 
     /**

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Color;
 
 /**
  * Represents a type of potion and its effect on an entity.
@@ -146,6 +147,21 @@ public abstract class PotionEffectType {
      */
     public static final PotionEffectType UNLUCK = new PotionEffectTypeWrapper(27);
 
+    /**
+     * Slows entity fall rate.
+     */
+    public static final PotionEffectType SLOW_FALLING = new PotionEffectTypeWrapper(28);
+
+    /**
+     * Effects granted by a nearby conduit. Includes enhanced underwater abilities.
+     */
+    public static final PotionEffectType CONDUIT_POWER = new PotionEffectTypeWrapper(29);
+
+    /**
+     * Squee'ek uh'k kk'kkkk squeek eee'eek.
+     */
+    public static final PotionEffectType DOLPHINS_GRACE = new PotionEffectTypeWrapper(30);
+
     private final int id;
 
     protected PotionEffectType(int id) {
@@ -197,6 +213,13 @@ public abstract class PotionEffectType {
      */
     public abstract boolean isInstant();
 
+    /**
+     * Returns the color of this effect type.
+     *
+     * @return the color
+     */
+    public abstract Color getColor();
+
     @Override
     public boolean equals(Object obj) {
         if (obj == null) {
@@ -222,7 +245,7 @@ public abstract class PotionEffectType {
         return "PotionEffectType[" + id + ", " + getName() + "]";
     }
 
-    private static final PotionEffectType[] byId = new PotionEffectType[28];
+    private static final PotionEffectType[] byId = new PotionEffectType[31];
     private static final Map<String, PotionEffectType> byName = new HashMap<String, PotionEffectType>();
     // will break on updates.
     private static boolean acceptingNew = true;

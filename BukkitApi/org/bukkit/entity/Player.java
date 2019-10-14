@@ -13,23 +13,28 @@ import org.bukkit.Note;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.Statistic;
 import org.bukkit.WeatherType;
-import org.bukkit.command.CommandSender;
+import org.bukkit.advancement.Advancement;
+import org.bukkit.advancement.AdvancementProgress;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.conversations.Conversable;
+import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 import org.bukkit.map.MapView;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.messaging.PluginMessageRecipient;
 import org.bukkit.scoreboard.Scoreboard;
 
 /**
  * 玩家对象
  */
-public interface Player extends HumanEntity, Conversable, CommandSender, OfflinePlayer, PluginMessageRecipient {
+public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginMessageRecipient {
 
     /**
-     * 获得玩家在聊天中的昵称.
+     * 获得玩家在聊天信息中的昵称.
      * <p>
-     * 这个名字只显示在聊天中,可以包括颜色 
+     * 这个昵称只显示在聊天信息中，能以颜色加以修饰.
      * <p>
      * 原文:Gets the "friendly" name to display of this player. This may include
      * color.
@@ -42,9 +47,9 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
     public String getDisplayName();
 
     /**
-     * 设置玩家在聊天中的昵称.
+     * 设置玩家在聊天信息中的昵称.
      * <p>
-     * 这个名字只显示在聊天中,可以包括颜色.
+     * 这个名字只显示在聊天信息中,能以颜色加以修饰.
      * <p>
      * 原文Sets the "friendly" name to display of this player. This may include
      * color.
@@ -61,31 +66,18 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
      * <p>
      * 原文:Gets the name that is shown on the player list.
      * 
-     * @return the player list name
+     * @return 玩家名(显示于tab列表)
      */
     public String getPlayerListName();
 
     /**
      * 设置玩家显示在Tab列表中的名称.
      * <p>
-     * 不允许超过16个字符,不允许重复.但支持{@link ChatColor}颜色代码.
-     * <p>
-     * 如果设置为null则不在玩家列表中显示.(玩家自己还是看得到的,只不过别人看不到).
+     * 如果设置为null则此名字与{@link #getName()}相同.
      * <p>
      * 原文:Sets the name that is shown on the in-game player list.
      * <p>
-     * The name cannot be longer than 16 characters, but {@link ChatColor} is
-     * supported.
-     * <p>
      * If the value is null, the name will be identical to {@link #getName()}.
-     * <p>
-     * This name is case sensitive and unique, two names with different casing
-     * will appear as two different people. If a player joins afterwards with
-     * a name that conflicts with a player's custom list name, the joining
-     * player's player list name will have a random number appended to it (1-2
-     * characters long in the default implementation). If the joining player's
-     * name is 15 or 16 characters long, part of the name will be truncated at
-     * the end to allow the addition of the two digits.
      *
      * @param name 新的显示在玩家列表中的名字
      * @throws IllegalArgumentException 当有名称相同时抛出
@@ -94,11 +86,48 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
     public void setPlayerListName(String name);
 
     /**
+     * Gets the currently displayed player list header for this player.
+     *
+     * @return player list header or null
+     */
+    public String getPlayerListHeader();
+
+    /**
+     * Gets the currently displayed player list footer for this player.
+     *
+     * @return player list header or null
+     */
+    public String getPlayerListFooter();
+
+    /**
+     * Sets the currently displayed player list header for this player.
+     *
+     * @param header player list header, null for empty
+     */
+    public void setPlayerListHeader(String header);
+
+    /**
+     * Sets the currently displayed player list footer for this player.
+     *
+     * @param footer player list footer, null for empty
+     */
+    public void setPlayerListFooter(String footer);
+
+    /**
+     * Sets the currently displayed player list header and footer for this
+     * player.
+     *
+     * @param header player list header, null for empty
+     * @param footer player list footer, null for empty
+     */
+    public void setPlayerListHeaderFooter(String header, String footer);
+
+    /**
      * 设置玩家指南针的指向的位置({@link Location}).
      * <p>
      * 原文:Set the target of the player's compass.
      *
-     * @param loc Location to point to
+     * @param loc 指向
      */
     public void setCompassTarget(Location loc);
 
@@ -109,14 +138,12 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
      * <p>
      * 原文: Get the previously set compass target.
      *
-     * @return location of the target
+     * @return 指向
      */
     public Location getCompassTarget();
 
     /**
      * 得到一个Address对象,包括这个玩家的IP以及登入端口.
-     * <p>
-     * 可以使用toString()方法得到 "xxx.xxx.xxx.xxx:xxxxx"
      * <p>
      * 原文:Gets the socket address of this player
      *
@@ -125,9 +152,9 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
     public InetSocketAddress getAddress();
 
     /**
-     * 发送一条不含颜色代码的消息
+     * 发送一条不含颜色代码的消息.
      * <p>
-     * 译注:就是会把颜色代码过滤掉然后{#link sendMessage}
+     * 译注:就是会把颜色代码过滤掉然后{@link #sendMessage}
      * <p>
      * 原文:Sends this sender a message raw
      *
@@ -168,7 +195,7 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
      * <p>
      * 原文:Returns if the player is in sneak mode
      *
-     * @return 如果在潜行模式返回true,false反之.
+     * @return 如果在潜行模式返回true
      */
     public boolean isSneaking();
 
@@ -201,9 +228,9 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
 
     /**
      * 保存玩家数据(位置,血量,背包,移动方向
-     * 及其他信息至在world/player文件夹中的玩家名.dat文件).
+     * 及其他信息至在world/player文件夹中的"玩家名.dat"文件).
      * <p>
-     * 原文 Saves the players current location, health, inventory, motion, and
+     * 原文:Saves the players current location, health, inventory, motion, and
      * other information into the username.dat file, in the world/player
      * folder
      */
@@ -287,7 +314,7 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
 
     /**
      * 向玩家在某个位置播放一个声音. <p>
-     * 当位置或声音为null或玩家的客户端没开启声音时,这个方法无效. <p>
+     * 当位置或声音为null或玩家的客户端没开启声音时,这个方法无效. 玩家客户端不存在指定声音本操作也将无效. <p>
      * 原文:Play a sound for a player at the location.
      * <p>
      * This function will fail silently if Location or Sound are null. No
@@ -302,18 +329,79 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
     public void playSound(Location location, String sound, float volume, float pitch);
 
     /**
-     * Stop the specified sound from playing.
+     * 向玩家在指定位置播放声音.
+     * <p>
+     * 当位置或声音为null或玩家的客户端没开启声音时,这个方法无效.
+     * <p>
+     * 原文:Play a sound for a player at the location.
+     * <p>
+     * This function will fail silently if Location or Sound are null.
      *
-     * @param sound the sound to stop
+     * @param location 声音播放位置
+     * @param sound 要播放的声音
+     * @param category 声音的分类
+     * @param volume 音量
+     * @param pitch 音调
+     */
+    public void playSound(Location location, Sound sound, SoundCategory category, float volume, float pitch);
+
+    /**
+     * 向玩家在指定位置播放声音.
+     * <p>
+     * 当位置或声音为null或玩家的客户端没开启声音时,这个方法无效. 玩家客户端不存在指定声音本操作也将无效.
+     * <p>
+     * 原文:Play a sound for a player at the location.
+     * <p>
+     * This function will fail silently if Location or Sound are null. No sound
+     * will be heard by the player if their client does not have the respective
+     * sound for the value passed.
+     *
+     * @param location 声音播放位置
+     * @param sound 要播放的声音
+     * @param category 声音的分类
+     * @param volume 音量
+     * @param pitch 音调
+     */
+    public void playSound(Location location, String sound, SoundCategory category, float volume, float pitch);
+
+    /**
+     * 停止播放指定的声音.
+     * <p>
+     * 原文:Stop the specified sound from playing.
+     *
+     * @param sound 指定声音
      */
     public void stopSound(Sound sound);
 
     /**
-     * Stop the specified sound from playing.
+     * 停止播放指定的声音.
+     * <p>
+     * 原文:Stop the specified sound from playing.
      *
-     * @param sound the sound to stop
+     * @param sound 指定声音
      */
     public void stopSound(String sound);
+
+
+    /**
+     * 停止播放指定的声音.
+     * <p>
+     * 原文:Stop the specified sound from playing.
+     *
+     * @param sound 指定声音
+     * @param category 声音类别
+     */
+    public void stopSound(Sound sound, SoundCategory category);
+
+    /**
+     * 停止播放指定的声音.
+     * <p>
+     * 原文:Stop the specified sound from playing.
+     *
+     * @param sound 指定声音
+     * @param category 声音类别
+     */
+    public void stopSound(String sound, SoundCategory category);
 
     /**
      * 在某个位置({@link Location})向玩家播放一个粒子效果({@link Effect}). <p>
@@ -354,13 +442,24 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
      * 但其实并没有改变.<p>
      * 例2:sendBlockChange(loc,Material.WOOL,(byte)14)将让玩家的客户端认为loc的位置是一个红色羊毛(附加值为14的WOOL).
      *
-     * @param loc 要改变的方块
+     * @param loc 要改变的方块的位置
      * @param material 要改变成的方块的类型
      * @param data 要改变成的方块的副ID
      * @deprecated 不安全的参数
      */
     @Deprecated
     public void sendBlockChange(Location loc, Material material, byte data);
+
+    /**
+     * 向该玩家发送一个伪造的指定位置的方块({@link Block})更改数据包.这不会改变世界中的方块.
+     * <p>
+     * 原文:Send a block change. This fakes a block change packet for a user at a
+     * certain location. This will not actually change the world in any way.
+     *
+     * @param loc 要改变的方块的位置
+     * @param block 新方块
+     */
+    public void sendBlockChange(Location loc, BlockData block);
 
     /**
      * 向该玩家发送一个伪造的指定位置的长方体的更改数据包.这不会改变世界中的方块.<p>
@@ -389,19 +488,6 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
      */
     @Deprecated
     public boolean sendChunkChange(Location loc, int sx, int sy, int sz, byte[] data);
-
-    /**
-     * 类似于 {@link #sendBlockChange(Location loc, Material material, byte data)}方法. <p>
-     * Send a block change. This fakes a block change packet for a user at a
-     * certain location. This will not actually change the world in any way.
-     *
-     * @param loc 要改变的方块的位置
-     * @param material 要改变成的方块的ID
-     * @param data 要改变成的方块的副ID
-     * @deprecated 不安全的参数
-     */
-    @Deprecated
-    public void sendBlockChange(Location loc, int material, byte data);
 
     /**
      * 向该玩家发送一个伪造的牌子({@link Sign})上的字的更改数据包.这不会改变世界中的任何方块. <p>
@@ -454,7 +540,9 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
      *
      * @param achievement 要给玩家的成就(不包括父成就)
      * @throws IllegalArgumentException 当成就为null时抛出.
+     * @deprecated 未来版本的Minecraft将不会有成就(取而代之的是进度).
      */
+    @Deprecated
     public void awardAchievement(Achievement achievement);
 
     /**
@@ -465,7 +553,9 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
      *
      * @param achievement 要移除的成就
      * @throws IllegalArgumentException 当成就为null时抛出.
+     * @deprecated 未来的Minecraft将不会有成就(取而代之的是进度).
      */
+    @Deprecated
     public void removeAchievement(Achievement achievement);
 
     /**
@@ -882,18 +972,31 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
     public void setLevel(int level);
 
     /**
-     * 得到总共的经验值(等级和经验). <p>
+     * 得到玩家总共获得了多少经验(等级和经验).
+     * <br>
+     * 这个数值指玩家随着时间的推移收集的全部经验，并只在玩家死亡时显示为玩家的"得分".
+     * <p>
      * 原文:Gets the players total experience points
+     * <br>
+     * This refers to the total amount of experience the player has collected
+     * over time and is only displayed as the player's "score" upon dying.
      *
      * @return 玩家总共有多少经验
      */
     public int getTotalExperience();
 
     /**
-     * 设置总共的经验值. <p>
-     * 原文:Sets the players current experience level
+     * 设置玩家的总经验值(等级和经验).
+     * <br>
+     * 这个数值指玩家随着时间的推移收集的全部经验，并只在玩家死亡时显示为玩家的"得分".
+     * <p>
+     * 原文:
+     * Sets the players current experience points.
+     * <br>
+     * This refers to the total amount of experience the player has collected
+     * over time and is only displayed as the player's "score" upon dying.
      *
-     * @param exp 新的玩家总经验
+     * @param exp 总经验值
      */
     public void setTotalExperience(int exp);
 
@@ -1012,16 +1115,43 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
      * 原文:Hides a player from this player
      *
      * @param player 要让该玩家看不见的玩家.
+     * @deprecated 另请参阅 {@link #hidePlayer(Plugin, Player)}
      */
+    @Deprecated
     public void hidePlayer(Player player);
+
+    /**
+     * 让该玩家看不见某玩家.
+     * <p>
+     * 原文:Hides a player from this player
+     *
+     * @param plugin Plugin 要隐藏该玩家的插件
+     * @param player Player 要让该玩家看不见的玩家.
+     */
+    public void hidePlayer(Plugin plugin, Player player);
 
     /**
      * 让该玩家能看到某玩家. <p>
      * 原文:Allows this player to see a player that was previously hidden
      *
      * @param player 要让该玩家看得见的玩家.
+     * @deprecated 另请参阅 {@link #showPlayer(Plugin, Player)}
      */
+    @Deprecated
     public void showPlayer(Player player);
+
+    /**
+     * 让该玩家能看到之前被隐藏的玩家. 如果另一个插件也隐藏了这个玩家,
+     * 那么玩家将继续处于隐藏状态直至其他插件也调用了此方法.
+     * <p>
+     * 原文:Allows this player to see a player that was previously hidden. If
+     * another another plugin had hidden the player too, then the player will
+     * remain hidden until the other plugin calls this method too.
+     *
+     * @param plugin Plugin 要使某玩家现身的插件
+     * @param player Player 使某玩家现身
+     */
+    public void showPlayer(Plugin plugin, Player player);
 
     /**
      * 检查该玩家是否能看到某玩家. <p>
@@ -1031,20 +1161,6 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
      * @return true表示能看到,false反之.
      */
     public boolean canSee(Player player);
-
-    /**
-     * 检查玩家是否在地面上(脚下是否为不是空气方块). <p>
-     * 这个方法得到的值不一定可靠,因为它是来自客户端的. <p>
-     * 原文:Checks to see if this player is currently standing on a block. This
-     * information may not be reliable, as it is a state provided by the
-     * client, and may therefore not be accurate.
-     *
-     * @return true表示该玩家站在一个不为空气的方块上,false反之.
-     * @deprecated 不符合 {@link
-     *     org.bukkit.entity.Entity#isOnGround()}
-     */
-    @Deprecated
-    public boolean isOnGround();
 
     /**
      * 检查玩家是否在飞. <p>
@@ -1112,19 +1228,24 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
      * The player's client will download the new texture pack asynchronously
      * in the background, and will automatically switch to it once the
      * download is complete. If the client has downloaded and cached the same
-     * texture pack in the past, it will perform a quick timestamp check over
-     * the network to determine if the texture pack has changed and needs to
-     * be downloaded again. When this request is sent for the very first time
-     * from a given server, the client will first display a confirmation GUI
-     * to the player before proceeding with the download.
+     * texture pack in the past, it will perform a file size check against
+     * the response content to determine if the texture pack has changed and
+     * needs to be downloaded again. When this request is sent for the very
+     * first time from a given server, the client will first display a
+     * confirmation GUI to the player before proceeding with the download.
      * <p>
      * Notes:
      * <ul>
      * <li>Players can disable server textures on their client, in which
-     *     case this method will have no affect on them.
+     *     case this method will have no affect on them. Use the
+     *     {@link PlayerResourcePackStatusEvent} to figure out whether or not
+     *     the player loaded the pack!
      * <li>There is no concept of resetting texture packs back to default
-     *     within Minecraft, so players will have to relog to do so.
-     * </ul>
+     *     within Minecraft, so players will have to relog to do so or you
+     *     have to send an empty pack.
+     * <li>The request is send with "null" as the hash. This might result
+     *     in newer versions not loading the pack correctly.
+     * <ul>
      *
      * @param url The URL from which the client will download the texture
      *     pack. The string must contain only US-ASCII characters and should
@@ -1139,28 +1260,40 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
     /**
      * 请求玩家的客户端下载并且使用指定资源包. <p>
      * 玩家的客户端将在后台异步下载新的资源包,并且下载完成后会自动使用那个资源包.如果
-     * 这个资源包已经下载好了,客户端先会检查给定URL的资源包跟已经下载的资源包一不一样. 
+     * 这个资源包已经下载好了,客户端先会检查给定URL的资源包跟已经下载的资源包是否一样. 
      * 如果不一样就会重新下载,一样就直接使用. <p>
      * 在开始下载之前,客户端会显示一个GUI确定界面,提示要不要下载资源包.如果玩家选择不要,
      * 就不能下载. <p>
-     * 如果玩家的客户端没有开启"使用服务器资源包"这个方法将失效. <p>
-     * 原文:Request that the player's client download and switch resource packs.
+     * 注意:
+     * <ul>
+     * <li>如果玩家的客户端没有开启"使用服务器资源包"这个方法将失效. 使用
+     * {@link PlayerResourcePackStatusEvent} 方法以推断玩家是否加载了你设置的资源包!
+     * <li>在Minecraft中没有将资源包重置为默认的概念,所以玩家必须重新登陆才能这么做,或者你必须发送一个空白的资源包.
+     * <li>请求以"null"作hash发送. 这可能导致较新版本的客户端不能正确加载资源包.
+     * </ul>
      * <p>
-     * The player's client will download the new resource pack asynchronously
+     * 原文:Request that the player's client download and switch texture packs.
+     * <p>
+     * The player's client will download the new texture pack asynchronously
      * in the background, and will automatically switch to it once the
      * download is complete. If the client has downloaded and cached the same
-     * resource pack in the past, it will perform a quick timestamp check
-     * over the network to determine if the resource pack has changed and
+     * texture pack in the past, it will perform a file size check against
+     * the response content to determine if the texture pack has changed and
      * needs to be downloaded again. When this request is sent for the very
      * first time from a given server, the client will first display a
      * confirmation GUI to the player before proceeding with the download.
      * <p>
      * Notes:
      * <ul>
-     * <li>Players can disable server resources on their client, in which
-     *     case this method will have no affect on them.
-     * <li>There is no concept of resetting resource packs back to default
-     *     within Minecraft, so players will have to relog to do so.
+     * <li>Players can disable server textures on their client, in which
+     *     case this method will have no affect on them. Use the
+     *     {@link PlayerResourcePackStatusEvent} to figure out whether or not
+     *     the player loaded the pack!
+     * <li>There is no concept of resetting texture packs back to default
+     *     within Minecraft, so players will have to relog to do so or you
+     *     have to send an empty pack.
+     * <li>The request is send with "null" as the hash. This might result
+     *     in newer versions not loading the pack correctly.
      * </ul>
      *
      * @param url 资源包的URL地址.只能包含US-ASCII字符并且使用RFC 1738编码.
@@ -1170,7 +1303,52 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
     public void setResourcePack(String url);
 
     /**
-     * 得到玩家的计分板. <p>
+     * 请求玩家的客户端下载并且使用指定资源包. <p>
+     * 玩家的客户端将在后台异步下载新的资源包,并且下载完成后会自动使用那个资源包.如果
+     * 这个资源包已经下载好了,客户端先会检查给定URL的资源包跟已经下载的资源包是否一样. 
+     * 如果不一样就会重新下载,一样就直接使用. <p>
+     * 在开始下载之前,客户端会显示一个GUI确定界面,提示要不要下载资源包.如果玩家选择不要,
+     * 就不能下载. <p>
+     * 注意:
+     * <ul>
+     * <li>如果玩家的客户端没有开启"使用服务器资源包"这个方法将失效. 使用
+     * {@link PlayerResourcePackStatusEvent} 方法以推断玩家是否加载了你设置的资源包!
+     * <li>在Minecraft中没有将资源包重置为默认的概念,所以玩家必须重新登陆才能这么做,或者你必须发送一个空白的资源包.
+     * </ul>
+     * <p>
+     * 原文:Request that the player's client download and switch resource packs.
+     * <p>
+     * The player's client will download the new resource pack asynchronously
+     * in the background, and will automatically switch to it once the
+     * download is complete. If the client has downloaded and cached a
+     * resource pack with the same hash in the past it will not download but
+     * directly apply the cached pack. When this request is sent for the very
+     * first time from a given server, the client will first display a
+     * confirmation GUI to the player before proceeding with the download.
+     * <p>
+     * Notes:
+     * <ul>
+     * <li>Players can disable server resources on their client, in which
+     *     case this method will have no affect on them. Use the
+     *     {@link PlayerResourcePackStatusEvent} to figure out whether or not
+     *     the player loaded the pack!
+     * <li>There is no concept of resetting resource packs back to default
+     *     within Minecraft, so players will have to relog to do so or you
+     *     have to send an empty pack.
+     * </ul>
+     *
+     * @param url 资源包的URL地址.只能包含US-ASCII字符并且使用RFC 1738编码.
+     * @param hash 资源包文件的sha1哈希值，被用于正确地应用缓存版本的资源包而不需再重新下载(如果之前下载过).必须是20字节长!
+     * @throws IllegalArgumentException 当URL为null时抛出
+     * @throws IllegalArgumentException 当URL太长或者不符合规范时抛出
+     * @throws IllegalArgumentException 当hash为null时抛出Thrown if the hash is null.
+     * @throws IllegalArgumentException 当hash不是20字节长时抛出
+     *     long.
+     */
+    public void setResourcePack(String url, byte[] hash);
+
+    /**
+     * 获取玩家的计分板. <p>
      * 原文:Gets the Scoreboard displayed to this player
      *
      * @return The current scoreboard seen by this player
@@ -1191,7 +1369,7 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
     public void setScoreboard(Scoreboard scoreboard) throws IllegalArgumentException, IllegalStateException;
 
     /**
-     * 得到客户端显示的玩家血量是否被"压缩"了. <p>
+     * 获取客户端显示的玩家血量是否被"压缩"了. <p>
      * 译注:当玩家的最大血量过多时({@link #setMaxHealth(double) }),每一排血量将会被
      * 挤在一起,以免挡住玩家的视线,这就是"压缩".这个方法就是判断血量是否被压缩了.(完全没用的说..). <p>
      * 原文:Gets if the client is displayed a 'scaled' health, that is, health on a
@@ -1238,7 +1416,7 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
     public void setHealthScale(double scale) throws IllegalArgumentException;
 
     /**
-     * 得到客户端显示的血量的"压缩率".  <p>
+     * 获取客户端显示的血量的"压缩率".  <p>
      * 详见{@link #setHealthScale(double) }
      * 原文:Gets the number that health is scaled to for the client.
      *
@@ -1249,73 +1427,111 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
     public double getHealthScale();
 
     /**
-     * Gets the entity which is followed by the camera when in
+     * 获取旁观者模式下镜头跟随的实体.
+     * <p>
+     * 原文:Gets the entity which is followed by the camera when in
      * {@link GameMode#SPECTATOR}.
      *
-     * @return the followed entity, or null if not in spectator mode or not
-     * following a specific entity.
+     * @return 正在跟随的实体, 如果未跟随实体或不处于旁观者模式返回null
      */
     public Entity getSpectatorTarget();
 
     /**
-     * Sets the entity which is followed by the camera when in
+     * 设置模式下镜头跟随的实体.
+     * <p>
+     * 原文:ets the entity which is followed by the camera when in
      * {@link GameMode#SPECTATOR}.
      *
-     * @param entity the entity to follow or null to reset
-     * @throws IllegalStateException if the player is not in
-     * {@link GameMode#SPECTATOR}
+     * @param entity 要跟随的实体, 设为null重置
+     * @throws IllegalStateException 若玩家不处于
+     * {@link GameMode#SPECTATOR 旁观者模式}
      */
     public void setSpectatorTarget(Entity entity);
 
-    /**
-     * Sends a title and a subtitle message to the player. If either of these
+   /**
+     * 向玩家发送屏幕标题.如果标题和副标题内容都为null, 那么标题将不会被发送出去, 玩家的屏幕也不会有变化.
+     * 如果这些参数是空字符串(注意空字符串与null有区别), 那么玩家的屏幕将会被更新(本质上讲, 虽然看起来没啥变化)
+     * 如果字符串包含多行文本, 那么只有第一行文本才会被发送出去.
+     * 标题将以玩家客户端默认的淡入淡出时间显示.
+     * <p>
+     * 原文:Sends a title and a subtitle message to the player. If either of these
      * values are null, they will not be sent and the display will remain
      * unchanged. If they are empty strings, the display will be updated as
      * such. If the strings contain a new line, only the first line will be
-     * sent.
+     * sent. be displayed with the client's default timings.
      *
-     * @param title Title text
-     * @param subtitle Subtitle text
-     * @deprecated API subject to change
+     * @param title 标题文本
+     * @param subtitle 副标题文本
+     * @deprecated API行为有所改变
      */
     @Deprecated
     public void sendTitle(String title, String subtitle);
 
-    /**
-     * Resets the title displayed to the player.
-     * @deprecated API subject to change.
+   /**
+     * 向玩家发送屏幕标题.如果标题和副标题内容都为null, 那么标题将不会被发送出去, 玩家的屏幕也不会有变化.
+     * 如果这些参数是空字符串(注意空字符串与null有区别), 那么玩家的屏幕将会被更新(本质上讲, 虽然看起来没啥变化)
+     * 如果字符串包含多行文本, 那么只有第一行文本才会被发送出去.
+     * 所有时间值都可以取-1来表示最后一次(或者上一次)发送标题所用的值(如果尚无任何标题曾被显示过则取默认值).
+     * <p>
+     * 原文:Sends a title and a subtitle message to the player. If either of these
+     * values are null, they will not be sent and the display will remain
+     * unchanged. If they are empty strings, the display will be updated as
+     * such. If the strings contain a new line, only the first line will be
+     * sent. All timings values may take a value of -1 to indicate that they
+     * will use the last value sent (or the defaults if no title has been
+     * displayed).
+     *
+     * @param title 标题文本
+     * @param subtitle 副标题文本
+     * @param fadeIn 标题淡入时间,以tick为单位.默认值取10.
+     * @param stay 标题停留/展示时长,以tick为单位.默认值取70.
+     * @param fadeOut 标题淡出时间,以tick为单位.默认值取20.
      */
-    @Deprecated
+    public void sendTitle(String title, String subtitle, int fadeIn, int stay, int fadeOut);
+
+   /**
+     * 重置想转玩家显示的屏幕标题.
+     * 这将清除已显示的标题/副标题并重置标题显示计时器至默认值.
+     * <p>
+     * 原文:Resets the title displayed to the player. This will clear the displayed
+     * title / subtitle and reset timings to their default values.
+     */
     public void resetTitle();
 
-    /**
-     * Spawns the particle (the number of times specified by count)
+    /** 
+     * 在指定位置产生粒子效果 (the number of times specified by count).
+     * <p>
+     * 原文:Sawns the particle (the number of times specified by count)
      * at the target location.
      *
-     * @param particle the particle to spawn
-     * @param location the location to spawn at
+     * @param particle 要产生的粒子效果
+     * @param location 粒子效果产生位置
      * @param count the number of particles
      */
     public void spawnParticle(Particle particle, Location location, int count);
 
     /**
-     * Spawns the particle (the number of times specified by count)
+     * 在指定位置产生粒子效果 (the number of times specified by count).
+     * <p>
+     * 原文:Sawns the particle (the number of times specified by count)
      * at the target location.
      *
-     * @param particle the particle to spawn
-     * @param x the position on the x axis to spawn at
-     * @param y the position on the y axis to spawn at
-     * @param z the position on the z axis to spawn at
+     * @param particle 要产生的粒子效果
+     * @param x 粒子效果产生位置x轴
+     * @param y 粒子效果产生位置y轴
+     * @param z 粒子效果产生位置z轴
      * @param count the number of particles
      */
     public void spawnParticle(Particle particle, double x, double y, double z, int count);
 
     /**
-     * Spawns the particle (the number of times specified by count)
+     * 在指定位置产生粒子效果 (the number of times specified by count).
+     * <p>
+     * 原文:Sawns the particle (the number of times specified by count)
      * at the target location.
      *
-     * @param particle the particle to spawn
-     * @param location the location to spawn at
+     * @param particle 要产生的粒子效果
+     * @param location 粒子效果产生位置
      * @param count the number of particles
      * @param data the data to use for the particle or null,
      *             the type of this depends on {@link Particle#getDataType()}
@@ -1480,4 +1696,49 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
      *             the type of this depends on {@link Particle#getDataType()}
      */
     public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data);
+
+    /**
+     * 返回玩家指定进度的完成进度.
+     * 原文:Return the player's progression on the specified advancement.
+     *
+     * @param advancement 进度
+     * @return 有关玩家进度的详细信息
+     */
+    public AdvancementProgress getAdvancementProgress(Advancement advancement);
+
+    /**
+     * Get the player's current client side view distance.
+     * <br>
+     * Will default to the server view distance if the client has not yet
+     * communicated this information,
+     *
+     * @return client view distance as above
+     */
+    public int getClientViewDistance();
+
+    /**
+     * 返回玩家本地语言环境.
+     * 语言环境值的格式尚未被适当地定义.
+     * <br>
+     * 原生 Minecraft 客户端将使用全小写 语言/国家, 用短下划线分隔. 但自定义资源包可能会使用他们想要的任意格式.
+     * <p>
+     * 原文:Gets the player's current locale.
+     *
+     * The value of the locale String is not defined properly.
+     * <br>
+     * The vanilla Minecraft client will use lowercase language / country pairs
+     * separated by an underscore, but custom resource packs may use any format
+     * they wish.
+     *
+     * @return 玩家语言环境
+     */
+    public String getLocale();
+
+    /**
+     * Update the list of commands sent to the client.
+     * <br>
+     * Generally useful to ensure the client has a complete list of commands
+     * after permission changes are done.
+     */
+    public void updateCommands();
 }

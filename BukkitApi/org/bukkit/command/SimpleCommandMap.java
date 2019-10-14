@@ -8,16 +8,15 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.command.defaults.*;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
 public class SimpleCommandMap implements CommandMap {
-    private static final Pattern PATTERN_ON_SPACE = Pattern.compile(" ", Pattern.LITERAL);
     protected final Map<String, Command> knownCommands = new HashMap<String, Command>();
     private final Server server;
 
@@ -122,7 +121,7 @@ public class SimpleCommandMap implements CommandMap {
      * {@inheritDoc}
      */
     public boolean dispatch(CommandSender sender, String commandLine) throws CommandException {
-        String[] args = PATTERN_ON_SPACE.split(commandLine);
+        String[] args = commandLine.split(" ");
 
         if (args.length == 0) {
             return false;
@@ -162,6 +161,10 @@ public class SimpleCommandMap implements CommandMap {
     }
 
     public List<String> tabComplete(CommandSender sender, String cmdLine) {
+        return tabComplete(sender, cmdLine, null);
+    }
+
+    public List<String> tabComplete(CommandSender sender, String cmdLine, Location location) {
         Validate.notNull(sender, "Sender cannot be null");
         Validate.notNull(cmdLine, "Command line cannot null");
 
@@ -202,11 +205,10 @@ public class SimpleCommandMap implements CommandMap {
             return null;
         }
 
-        String argLine = cmdLine.substring(spaceIndex + 1, cmdLine.length());
-        String[] args = PATTERN_ON_SPACE.split(argLine, -1);
+        String[] args = cmdLine.substring(spaceIndex + 1, cmdLine.length()).split(" ", -1);
 
         try {
-            return target.tabComplete(sender, commandName, args);
+            return target.tabComplete(sender, commandName, args, location);
         } catch (CommandException ex) {
             throw ex;
         } catch (Throwable ex) {
@@ -221,13 +223,14 @@ public class SimpleCommandMap implements CommandMap {
     public void registerServerAliases() {
         Map<String, String[]> values = server.getCommandAliases();
 
-        for (String alias : values.keySet()) {
+        for (Map.Entry<String, String[]> entry : values.entrySet()) {
+            String alias = entry.getKey();
             if (alias.contains(" ")) {
                 server.getLogger().warning("Could not register alias " + alias + " because it contains illegal characters");
                 continue;
             }
 
-            String[] commandStrings = values.get(alias);
+            String[] commandStrings = entry.getValue();
             List<String> targets = new ArrayList<String>();
             StringBuilder bad = new StringBuilder();
 

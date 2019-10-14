@@ -2,7 +2,6 @@ package org.bukkit.event.block;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 
 /**
@@ -15,13 +14,15 @@ import org.bukkit.event.HandlerList;
  * <ul>
  * <li>雪在下雪的时候形成.
  * <li>冰在有雪的生物群系中构成.
+ * <li>黑曜石/圆石/(石头)由于(熔岩)与水接触而蔓延(熔岩与水的接触的结果).
+ * <li>混凝土由于混凝土粉末与水的混合固化而蔓延.
  * </ul>
  * <p>
  * 如果本事件被取消，方块将不会蔓延等.
  * 
  * @see BlockSpreadEvent
  */
-public class BlockFormEvent extends BlockGrowEvent implements Cancellable {
+public class BlockFormEvent extends BlockGrowEvent {
     private static final HandlerList handlers = new HandlerList();
 
     public BlockFormEvent(final Block block, final BlockState newState) {

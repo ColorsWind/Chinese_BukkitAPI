@@ -7,14 +7,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.*;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.material.MaterialData;
 import org.bukkit.metadata.Metadatable;
 import org.bukkit.plugin.messaging.PluginMessageRecipient;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.Consumer;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 /**
@@ -62,40 +68,12 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public int getBlockTypeIdAt(int x, int y, int z);
 
     /**
-     * 获取指定{@link Location 位置}的{@link Block 方块}的ID.
-     * <p>
-     * 原文：Gets the block type ID at the given {@link Location}
+     * Gets the y coordinate of the lowest block at the given {@link Location}
+     * such that the block and all blocks above it are transparent for lighting
+     * purposes.
      *
-     * @param location 要获取的方块ID的位置
-     * @return 指定位置的方块的ID
-     * @see #getBlockAt(org.bukkit.Location) 返回一个位置({@link Location})所在的方块({@link Block})对象
-     * @deprecated 不安全的参数
-     */
-    @Deprecated
-    public int getBlockTypeIdAt(Location location);
-
-    /**
-     * 获取指定坐标的最顶上的方块的Y坐标(不是空气).
-     * <p>
-     * 译注：就是说,获取某个坐标最上面的方块的高度(Y坐标).Essentials插件的top命令就是这个原理.
-     * <p>
-     * 原文：Gets the highest non-air coordinate at the given coordinates
-     *
-     * @param x 给定的X坐标
-     * @param z 给定的Z坐标
-     * @return 在x,y位置的最高的方块的高度(忽略空气)
-     */
-    public int getHighestBlockYAt(int x, int z);
-
-    /**
-     * 获取指定{@link Location 位置}的最顶上的方块的Y坐标(不是空气).
-     * <p>
-     * 译注：就是说,获取某个坐标最上面的方块的高度(Y坐标).Essentials插件的top就是这个原理.
-     * <p>
-     * 原文：Gets the highest non-air coordinate at the given {@link Location}
-     *
-     * @param location 给定的位置({@link Location})
-     * @return 在给定的位置中的x坐标,y坐标位置中最高的方块的高度(忽略空气)
+     * @param location Location of the blocks
+     * @return Y-coordinate of the highest non-air block
      */
     public int getHighestBlockYAt(Location location);
 
@@ -166,6 +144,15 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @return 如果区块已经被加载则返回true，否则返回false
      */
     public boolean isChunkLoaded(Chunk chunk);
+
+    /**
+     * Checks if the {@link Chunk} at the specified coordinates is generated
+     *
+     * @param x X-coordinate of the chunk
+     * @param z Z-coordinate of the chunk
+     * @return true if the chunk is generated, otherwise false
+     */
+    public boolean isChunkGenerated(int x, int z);
 
     /**
      * 获取一个所有被加载的{@link Chunk 区块}的数组.
@@ -354,7 +341,10 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @param x 区块的x坐标
      * @param z 区块的z坐标
      * @return 区块是否真的被重新生成
+     * 
+     * @deprecated 无法保证重新生成单个区块会产生与之前相同的区块, 因为地形装饰可分布在区块上
      */
+    @Deprecated
     public boolean regenerateChunk(int x, int z);
 
     /**
@@ -555,12 +545,15 @@ public interface World extends PluginMessageRecipient, Metadatable {
     /**
      * 返回一个以这个位置为中心的包围着的所有实体的列表(译注:这个可能不太好理解，就是在这个位置，按指定的搜索范围，搜索这个范围里的所有实体).
      * <p>
-     * 一些实现可能会对搜索的范围的大小施加限制.
+     * 这可能不会考虑当前尚未加载的区块中的实体. 一些实现可能会对搜索的范围的大小施加限制.
      * <p>
      * 原文：
-     * Returns a list of entities within a bounding box centered around a Location.
-     *
-     * Some implementations may impose artificial restrictions on the size of the search bounding box.
+     * Returns a list of entities within a bounding box centered around a
+     * Location.
+     * <p>
+     * This may not consider entities in currently unloaded chunks. Some
+     * implementations may impose artificial restrictions on the size of the
+     * search bounding box.
      *
      * @param location 搜索范围的中心
      * @param x 搜索范围的x半轴长度
@@ -569,6 +562,216 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @return 在位置附近的实体的集合,一般不为空
      */
     public Collection<Entity> getNearbyEntities(Location location, double x, double y, double z);
+
+    /**
+     * Returns a list of entities within a bounding box centered around a
+     * Location.
+     * <p>
+     * This may not consider entities in currently unloaded chunks. Some
+     * implementations may impose artificial restrictions on the size of the
+     * search bounding box.
+     *
+     * @param location The center of the bounding box
+     * @param x 1/2 the size of the box along x axis
+     * @param y 1/2 the size of the box along y axis
+     * @param z 1/2 the size of the box along z axis
+     * @param filter only entities that fulfill this predicate are considered,
+     *     or <code>null</code> to consider all entities
+     * @return the collection of entities near location. This will always be a
+     *     non-null collection.
+     */
+    public Collection<Entity> getNearbyEntities(Location location, double x, double y, double z, Predicate<Entity> filter);
+
+    /**
+     * Returns a list of entities within the given bounding box.
+     * <p>
+     * This may not consider entities in currently unloaded chunks. Some
+     * implementations may impose artificial restrictions on the size of the
+     * search bounding box.
+     *
+     * @param boundingBox the bounding box
+     * @return the collection of entities within the bounding box, will always
+     *     be a non-null collection
+     */
+    public Collection<Entity> getNearbyEntities(BoundingBox boundingBox);
+
+    /**
+     * Returns a list of entities within the given bounding box.
+     * <p>
+     * This may not consider entities in currently unloaded chunks. Some
+     * implementations may impose artificial restrictions on the size of the
+     * search bounding box.
+     *
+     * @param boundingBox the bounding box
+     * @param filter only entities that fulfill this predicate are considered,
+     *     or <code>null</code> to consider all entities
+     * @return the collection of entities within the bounding box, will always
+     *     be a non-null collection
+     */
+    public Collection<Entity> getNearbyEntities(BoundingBox boundingBox, Predicate<Entity> filter);
+
+    /**
+     * Performs a ray trace that checks for entity collisions.
+     * <p>
+     * This may not consider entities in currently unloaded chunks. Some
+     * implementations may impose artificial restrictions on the maximum
+     * distance.
+     *
+     * @param start the start position
+     * @param direction the ray direction
+     * @param maxDistance the maximum distance
+     * @return the closest ray trace hit result, or <code>null</code> if there
+     *     is no hit
+     * @see #rayTraceEntities(Location, Vector, double, double, Predicate)
+     */
+    public RayTraceResult rayTraceEntities(Location start, Vector direction, double maxDistance);
+
+    /**
+     * Performs a ray trace that checks for entity collisions.
+     * <p>
+     * This may not consider entities in currently unloaded chunks. Some
+     * implementations may impose artificial restrictions on the maximum
+     * distance.
+     *
+     * @param start the start position
+     * @param direction the ray direction
+     * @param maxDistance the maximum distance
+     * @param raySize entity bounding boxes will be uniformly expanded (or
+     *     shrinked) by this value before doing collision checks
+     * @return the closest ray trace hit result, or <code>null</code> if there
+     *     is no hit
+     * @see #rayTraceEntities(Location, Vector, double, double, Predicate)
+     */
+    public RayTraceResult rayTraceEntities(Location start, Vector direction, double maxDistance, double raySize);
+
+    /**
+     * Performs a ray trace that checks for entity collisions.
+     * <p>
+     * This may not consider entities in currently unloaded chunks. Some
+     * implementations may impose artificial restrictions on the maximum
+     * distance.
+     *
+     * @param start the start position
+     * @param direction the ray direction
+     * @param maxDistance the maximum distance
+     * @param filter only entities that fulfill this predicate are considered,
+     *     or <code>null</code> to consider all entities
+     * @return the closest ray trace hit result, or <code>null</code> if there
+     *     is no hit
+     * @see #rayTraceEntities(Location, Vector, double, double, Predicate)
+     */
+    public RayTraceResult rayTraceEntities(Location start, Vector direction, double maxDistance, Predicate<Entity> filter);
+
+    /**
+     * Performs a ray trace that checks for entity collisions.
+     * <p>
+     * This may not consider entities in currently unloaded chunks. Some
+     * implementations may impose artificial restrictions on the maximum
+     * distance.
+     *
+     * @param start the start position
+     * @param direction the ray direction
+     * @param maxDistance the maximum distance
+     * @param raySize entity bounding boxes will be uniformly expanded (or
+     *     shrinked) by this value before doing collision checks
+     * @param filter only entities that fulfill this predicate are considered,
+     *     or <code>null</code> to consider all entities
+     * @return the closest ray trace hit result, or <code>null</code> if there
+     *     is no hit
+     */
+    public RayTraceResult rayTraceEntities(Location start, Vector direction, double maxDistance, double raySize, Predicate<Entity> filter);
+
+    /**
+     * Performs a ray trace that checks for block collisions using the blocks'
+     * precise collision shapes.
+     * <p>
+     * This takes collisions with passable blocks into account, but ignores
+     * fluids.
+     * <p>
+     * This may cause loading of chunks! Some implementations may impose
+     * artificial restrictions on the maximum distance.
+     *
+     * @param start the start location
+     * @param direction the ray direction
+     * @param maxDistance the maximum distance
+     * @return the ray trace hit result, or <code>null</code> if there is no hit
+     * @see #rayTraceBlocks(Location, Vector, double, FluidCollisionMode, boolean)
+     */
+    public RayTraceResult rayTraceBlocks(Location start, Vector direction, double maxDistance);
+
+    /**
+     * Performs a ray trace that checks for block collisions using the blocks'
+     * precise collision shapes.
+     * <p>
+     * This takes collisions with passable blocks into account.
+     * <p>
+     * This may cause loading of chunks! Some implementations may impose
+     * artificial restrictions on the maximum distance.
+     *
+     * @param start the start location
+     * @param direction the ray direction
+     * @param maxDistance the maximum distance
+     * @param fluidCollisionMode the fluid collision mode
+     * @return the ray trace hit result, or <code>null</code> if there is no hit
+     * @see #rayTraceBlocks(Location, Vector, double, FluidCollisionMode, boolean)
+     */
+    public RayTraceResult rayTraceBlocks(Location start, Vector direction, double maxDistance, FluidCollisionMode fluidCollisionMode);
+
+    /**
+     * Performs a ray trace that checks for block collisions using the blocks'
+     * precise collision shapes.
+     * <p>
+     * If collisions with passable blocks are ignored, fluid collisions are
+     * ignored as well regardless of the fluid collision mode.
+     * <p>
+     * Portal blocks are only considered passable if the ray starts within
+     * them. Apart from that collisions with portal blocks will be considered
+     * even if collisions with passable blocks are otherwise ignored.
+     * <p>
+     * This may cause loading of chunks! Some implementations may impose
+     * artificial restrictions on the maximum distance.
+     *
+     * @param start the start location
+     * @param direction the ray direction
+     * @param maxDistance the maximum distance
+     * @param fluidCollisionMode the fluid collision mode
+     * @param ignorePassableBlocks whether to ignore passable but collidable
+     *     blocks (ex. tall grass, signs, fluids, ..)
+     * @return the ray trace hit result, or <code>null</code> if there is no hit
+     */
+    public RayTraceResult rayTraceBlocks(Location start, Vector direction, double maxDistance, FluidCollisionMode fluidCollisionMode, boolean ignorePassableBlocks);
+
+    /**
+     * Performs a ray trace that checks for both block and entity collisions.
+     * <p>
+     * Block collisions use the blocks' precise collision shapes. The
+     * <code>raySize</code> parameter is only taken into account for entity
+     * collision checks.
+     * <p>
+     * If collisions with passable blocks are ignored, fluid collisions are
+     * ignored as well regardless of the fluid collision mode.
+     * <p>
+     * Portal blocks are only considered passable if the ray starts within them.
+     * Apart from that collisions with portal blocks will be considered even if
+     * collisions with passable blocks are otherwise ignored.
+     * <p>
+     * This may cause loading of chunks! Some implementations may impose
+     * artificial restrictions on the maximum distance.
+     *
+     * @param start the start location
+     * @param direction the ray direction
+     * @param maxDistance the maximum distance
+     * @param fluidCollisionMode the fluid collision mode
+     * @param ignorePassableBlocks whether to ignore passable but collidable
+     *     blocks (ex. tall grass, signs, fluids, ..)
+     * @param raySize entity bounding boxes will be uniformly expanded (or
+     *     shrinked) by this value before doing collision checks
+     * @param filter only entities that fulfill this predicate are considered,
+     *     or <code>null</code> to consider all entities
+     * @return the closest ray trace hit result with either a block or an
+     *     entity, or <code>null</code> if there is no hit
+     */
+    public RayTraceResult rayTrace(Location start, Vector direction, double maxDistance, FluidCollisionMode fluidCollisionMode, boolean ignorePassableBlocks, double raySize, Predicate<Entity> filter);
 
     /**
      * 获取世界的唯一名称.
@@ -599,6 +802,20 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @return 这个世界的出生点位置
      */
     public Location getSpawnLocation();
+
+    /**
+     * 设置这个世界的出生点位置.
+     * <br>
+     * 提供的位置所处世界必须与这个世界相同.
+     * <p>
+     * 原文:Sets the spawn location of the world.
+     * <br>
+     * The location provided must be equal to this world.
+     *
+     * @param location 要设置的出生点位置
+     * @return 若成功设置返回true
+     */
+    public boolean setSpawnLocation(Location location);
 
     /**
      * 设置这个世界的出生点位置.
@@ -912,7 +1129,41 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public <T extends Entity> T spawn(Location location, Class<T> clazz) throws IllegalArgumentException;
 
     /**
-     * 在指定的{@link Location 位置}根据给定的{@link Material 物品}生成一个{@link FallingBlock 正在下落的方块}实体。物品决定下落的东西。当下落方块碰到地时就会放置这个方块.
+     * Spawn an entity of a specific class at the given {@link Location}, with
+     * the supplied function run before the entity is added to the world.
+     * <br>
+     * Note that when the function is run, the entity will not be actually in
+     * the world. Any operation involving such as teleporting the entity is undefined
+     * until after this function returns.
+     *
+     * @param location the {@link Location} to spawn the entity at
+     * @param clazz the class of the {@link Entity} to spawn
+     * @param function the function to be run before the entity is spawned.
+     * @param <T> the class of the {@link Entity} to spawn
+     * @return an instance of the spawned {@link Entity}
+     * @throws IllegalArgumentException if either parameter is null or the
+     *     {@link Entity} requested cannot be spawned
+     */
+    public <T extends Entity> T spawn(Location location, Class<T> clazz, Consumer<T> function) throws IllegalArgumentException;
+
+    /**
+     * Spawn a {@link FallingBlock} entity at the given {@link Location} of
+     * the specified {@link Material}. The material dictates what is falling.
+     * When the FallingBlock hits the ground, it will place that block.
+     * <p>
+     * The Material must be a block type, check with {@link Material#isBlock()
+     * material.isBlock()}. The Material may not be air.
+     *
+     * @param location The {@link Location} to spawn the FallingBlock
+     * @param data The block data
+     * @return The spawned {@link FallingBlock} instance
+     * @throws IllegalArgumentException if {@link Location} or {@link
+     *     MaterialData} are null or {@link Material} of the {@link MaterialData} is not a block
+     */
+    public FallingBlock spawnFallingBlock(Location location, MaterialData data) throws IllegalArgumentException;
+
+    /**
+     * 在指定的{@link Location 位置}根据给定的{@link Material 物品}生成一个{@link FallingBlock 掉落中的方块}实体。物品决定下落的东西。当下落方块碰到地时就会放置这个方块.
      * <p>
      * 物品必须是一个经过{@link Material#isBlock()}检验的方块类型,可能不是空气.
      * <p>
@@ -925,32 +1176,36 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * material.isBlock()}. The Material may not be air.
      *
      * @param location 生成下落方块的{@link Location 位置}
-     * @param material 方块{@link Material 物品}的类型
      * @param data 方块数据
      * @return 生成的{@link FallingBlock 正在下落的方块}实例
-     * @throws IllegalArgumentException 如果{@link Location 位置}或{@link Material 物品} 为空或{@link Material 物品}不是一个方块则抛出错误。
+     * @throws IllegalArgumentException 如果 {@link Location} 或 {@link BlockData} 为null
+     */
+    public FallingBlock spawnFallingBlock(Location location, BlockData data) throws IllegalArgumentException;
+
+    /**
+     * 在指定的{@link Location 位置}根据指定的方块{@link Material 物品}生成一个{@link FallingBlock 掉落中的方块}实体.
+     * 物品决定下落的东西。当下落方块碰到地时就会放置这个方块.
+     * <p>
+     * 物品必须是一个经过{@link Material#isBlock()}检验的方块类型,可能不是空气.
+     * <p>
+     * 原文：
+     * Spawn a {@link FallingBlock} entity at the given {@link Location} of the
+     * specified {@link Material}. The material dictates what is falling.
+     * When the FallingBlock hits the ground, it will place that block.
+     * <p>
+     * The Material must be a block type, check with {@link Material#isBlock()
+     * material.isBlock()}. The Material may not be air.
+     *
+     * @param location 生成下落方块的{@link Location 位置}
+     * @param @param material 方块 {@link Material} 类型
+     * @param data 方块数据
+     * @return 生成的{@link FallingBlock 正在下落的方块}实例
+     * @throws IllegalArgumentException 如果 {@link Location} 或 {@link
+     *     Material} 为null 或 {@link Material} 不是方块
      * @deprecated 不安全的参数
      */
     @Deprecated
     public FallingBlock spawnFallingBlock(Location location, Material material, byte data) throws IllegalArgumentException;
-
-    /**
-     * 在指定的{@link Location 位置}根据指定的方块ID（会被转换为{@link Material 物品}）生成一个{@link FallingBlock 正在下落的方块}实体.
-     * <p>
-     * 原文：
-     * Spawn a {@link FallingBlock} entity at the given {@link Location} of
-     * the specified blockId (converted to {@link Material})
-     *
-     * @param location 生成下落方块的{@link Location 位置}
-     * @param blockId 物品相应的ID
-     * @param blockData 方块数据
-     * @return 生成的{@link FallingBlock 正在下落的方块}实例
-     * @throws IllegalArgumentException 如果位置为空或方块无效则抛出错误
-     * @see #spawnFallingBlock(org.bukkit.Location, org.bukkit.Material, byte)
-     * @deprecated 不安全的参数
-     */
-    @Deprecated
-    public FallingBlock spawnFallingBlock(Location location, int blockId, byte blockData) throws IllegalArgumentException;
 
     /**
      * 向以指定位置为圆心的默认半径内的所有玩家施加(给予)一个效果.
@@ -1017,10 +1272,10 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @param x 区块x坐标
      * @param z 区块z坐标
      * @param includeBiome 如果为true，则快照会包含每个坐标的生物群系类型
-     * @param includeBiomeTempRain 如果为true，则快照会包含每个坐标的原始生物群系温度和降雨
+     * @param includeBiomeTemp 如果为true，则快照会包含每个坐标的原始生物群系温度
      * @return 空快照
      */
-    public ChunkSnapshot getEmptyChunkSnapshot(int x, int z, boolean includeBiome, boolean includeBiomeTempRain);
+    public ChunkSnapshot getEmptyChunkSnapshot(int x, int z, boolean includeBiome, boolean includeBiomeTemp);
 
     /**
      * 为这个世界设置出生标识。
@@ -1080,13 +1335,18 @@ public interface World extends PluginMessageRecipient, Metadatable {
     /**
      * 获取指定方块坐标的温度。
      * <p>
-     * 方块不存在时运行这个方法是安全的，它不会创建方块。
+     * 方块不存在时运行这个方法是安全的，它不会创建方块.
+     * <p>
+     * 本方法将返回原始温度值, 不以方块高度所带来的影响而判断.
      * <p>
      * 原文：
      * Gets the temperature for the given block coordinates.
      * <p>
      * It is safe to run this method when the block does not exist, it will
      * not create the block.
+     * <p>
+     * This method will return the raw temperature without adjusting for block
+     * height effects.
      *
      * @param x 方块的x坐标
      * @param z 方块的z坐标
@@ -1542,22 +1802,47 @@ public interface World extends PluginMessageRecipient, Metadatable {
      */
     void playSound(Location location, String sound, float volume, float pitch);
 
-    /**
-     * 获取当前的游戏规则。
+	/**
+     * Play a Sound at the provided Location in the World.
      * <p>
-     * 译注：如果你不知道这是什么，请查阅gamerule命令。
-     * <p>
-     * 原文：
-     * Get existing rules
+     * This function will fail silently if Location or Sound are null.
      *
-     * @return 包含所有规则的数组
+     * @param location The location to play the sound
+     * @param sound The sound to play
+     * @param category the category of the sound
+     * @param volume The volume of the sound
+     * @param pitch The pitch of the sound
+     */
+    void playSound(Location location, Sound sound, SoundCategory category, float volume, float pitch);
+
+    /**
+     * Play a Sound at the provided Location in the World.
+     * <p>
+     * This function will fail silently if Location or Sound are null. No sound
+     * will be heard by the players if their clients do not have the respective
+     * sound for the value passed.
+     *
+     * @param location the location to play the sound
+     * @param sound the internal sound name to play
+     * @param category the category of the sound
+     * @param volume the volume of the sound
+     * @param pitch the pitch of the sound
+     */
+    void playSound(Location location, String sound, SoundCategory category, float volume, float pitch);
+
+    /**
+     * 获取包含所有{@link GameRule 游戏规则}的数组.
+     * <p>
+     * 原文:Get an array containing the names of all the {@link GameRule}s.
+     *
+     * @return {@link GameRule 游戏规则}名列表.
      */
     public String[] getGameRules();
 
     /**
-     * 获取指定游戏规则的当前状态。
+     * 获取指定游戏规则的当前状态.
      * <p>
-     * 如果规则是空则会返回null
+     * 如果rule为null则会返回null.
      * <p>
      * 原文：
      * Gets the current state of the specified rule
@@ -1566,15 +1851,17 @@ public interface World extends PluginMessageRecipient, Metadatable {
      *
      * @param rule 要查找的规则
      * @return 规则的字符串数值
+     * @deprecated 请使用 {@link #getGameRuleValue(GameRule)}
      */
+    @Deprecated
     public String getGameRuleValue(String rule);
 
     /**
-     * 将指定的游戏规则设置为指定数值。
+     * 将指定的游戏规则设置为指定数值.
      * <p>
-     * 规则可能会尝试验证值，如果数值被设置则会返回true。
+     * 规则可能会尝试验证值，如果数值被设置则会返回true.
      * <p>
-     * 如果规则为空，则这个函数会返回false。
+     * 如果rule为null，则这个函数会返回false.
      * <p>
      * 原文：
      * Set the specified gamerule to specified value.
@@ -1587,11 +1874,13 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @param rule 要设置的规则
      * @param value 要设置的规则数值
      * @return 规则被设置则返回true
+     * @deprecated 请使用 {@link #setGameRule(GameRule, Object)}
      */
+    @Deprecated
     public boolean setGameRuleValue(String rule, String value);
 
     /**
-     * 检查字符串是否是一个有效的游戏规则。
+     * 检查字符串是否是一个有效的游戏规则.
      * <p>
      * 原文：
      * Checks if string is a valid game rule
@@ -1600,6 +1889,41 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @return 如果规则存在则返回true
      */
     public boolean isGameRule(String rule);
+
+    /**
+     * 获取给定的{@link GameRule 游戏规则}的数据值.
+     * <p>
+     * 原文:Get the current value for a given {@link GameRule}.
+     *
+     * @param rule 游戏规则
+     * @param <T> 游戏规则数据类型
+     * @return 游戏规则值
+     */
+    public <T> T getGameRuleValue(GameRule<T> rule);
+
+    /**
+     * 获取给定{@link GameRule 游戏规则}的默认值. 不保证该值与当前值匹配.
+     * <p>
+     * 原文:Get the default value for a given {@link GameRule}. This value is not
+     * guaranteed to match the current value.
+     *
+     * @param rule 游戏规则
+     * @param <T> 游戏规则数据类型
+     * @return 游戏规则默认值
+     */
+    public <T> T getGameRuleDefault(GameRule<T> rule);
+
+    /**
+     * 设置给定{@link GameRule 游戏规则}的数据值.
+     * <p>
+     * 原文:Set the given {@link GameRule}'s new value.
+     *
+     * @param rule 要更新的游戏规则
+     * @param newValue 值
+     * @param <T> 对应游戏规则的数据类型
+     * @return 若设置成功返回true
+     */
+    public <T> boolean setGameRule(GameRule<T> rule, T newValue);
 
     /**
      * 获取这个世界的世界边界对象。
@@ -1803,6 +2127,78 @@ public interface World extends PluginMessageRecipient, Metadatable {
      *             the type of this depends on {@link Particle#getDataType()}
      */
     public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data);
+
+    /**
+     * Spawns the particle (the number of times specified by count)
+     * at the target location. The position of each particle will be
+     * randomized positively and negatively by the offset parameters
+     * on each axis.
+     *
+     * @param particle the particle to spawn
+     * @param location the location to spawn at
+     * @param count the number of particles
+     * @param offsetX the maximum random offset on the X axis
+     * @param offsetY the maximum random offset on the Y axis
+     * @param offsetZ the maximum random offset on the Z axis
+     * @param extra the extra data for this particle, depends on the
+     *              particle used (normally speed)
+     * @param data the data to use for the particle or null,
+     *             the type of this depends on {@link Particle#getDataType()}
+     * @param force whether to send the particle to players within an extended
+     *              range and encourage their client to render it regardless of
+     *              settings
+     */
+    public <T> void spawnParticle(Particle particle, Location location, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force);
+
+    /**
+     * Spawns the particle (the number of times specified by count)
+     * at the target location. The position of each particle will be
+     * randomized positively and negatively by the offset parameters
+     * on each axis.
+     *
+     * @param particle the particle to spawn
+     * @param x the position on the x axis to spawn at
+     * @param y the position on the y axis to spawn at
+     * @param z the position on the z axis to spawn at
+     * @param count the number of particles
+     * @param offsetX the maximum random offset on the X axis
+     * @param offsetY the maximum random offset on the Y axis
+     * @param offsetZ the maximum random offset on the Z axis
+     * @param extra the extra data for this particle, depends on the
+     *              particle used (normally speed)
+     * @param data the data to use for the particle or null,
+     *             the type of this depends on {@link Particle#getDataType()}
+     * @param force whether to send the particle to players within an extended
+     *              range and encourage their client to render it regardless of
+     *              settings
+     */
+    public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force);
+
+    /**
+     * Find the closest nearby structure of a given {@link StructureType}.
+     * Finding unexplored structures can, and will, block if the world is
+     * looking in chunks that gave not generated yet. This can lead to the world
+     * temporarily freezing while locating an unexplored structure.
+     * <p>
+     * The {@code radius} is not a rigid square radius. Each structure may alter
+     * how many chunks to check for each iteration. Do not assume that only a
+     * radius x radius chunk area will be checked. For example,
+     * {@link StructureType#WOODLAND_MANSION} can potentially check up to 20,000
+     * blocks away (or more) regardless of the radius used.
+     * <p>
+     * This will <i>not</i> load or generate chunks. This can also lead to
+     * instances where the server can hang if you are only looking for
+     * unexplored structures. This is because it will keep looking further and
+     * further out in order to find the structure.
+     *
+     * @param origin where to start looking for a structure
+     * @param structureType the type of structure to find
+     * @param radius the radius, in chunks, around which to search
+     * @param findUnexplored true to only find unexplored structures
+     * @return the closest {@link Location}, or null if no structure of the
+     * specified type exists.
+     */
+    public Location locateNearestStructure(Location origin, StructureType structureType, int radius, boolean findUnexplored);
 
     /**
      * 表示世界可能的各种地图环境类型.

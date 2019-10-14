@@ -37,7 +37,7 @@ public interface Objective {
      * @param displayName 用于显示的名称
      * @throws IllegalStateException 对象已被注销
      * @throws IllegalArgumentException 参数displayName（显示名称）为空
-     * @throws IllegalArgumentException 参数displayName（显示名称）大于32个字符
+     * @throws IllegalArgumentException 参数displayName（显示名称）大于128个字符
      *     characters.
      */
     void setDisplayName(String displayName) throws IllegalStateException, IllegalArgumentException;
@@ -96,6 +96,22 @@ public interface Objective {
      * @throws IllegalStateException 对象已被注销
      */
     DisplaySlot getDisplaySlot() throws IllegalStateException;
+
+    /**
+     * Sets manner in which this objective will be rendered.
+     *
+     * @param renderType new render type
+     * @throws IllegalStateException if this objective has been unregistered
+     */
+    void setRenderType(RenderType renderType) throws IllegalStateException;
+
+    /**
+     * Sets manner in which this objective will be rendered.
+     *
+     * @return the render type
+     * @throws IllegalStateException if this objective has been unregistered
+     */
+    RenderType getRenderType() throws IllegalStateException;
 
     /**
      * 获对象内玩分数.

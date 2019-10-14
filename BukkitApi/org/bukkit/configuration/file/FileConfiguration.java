@@ -12,12 +12,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.nio.charset.Charset;
 
 import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.MemoryConfiguration;
@@ -119,28 +117,6 @@ public abstract class FileConfiguration extends MemoryConfiguration {
         Validate.notNull(file, "File cannot be null");
 
         final FileInputStream stream = new FileInputStream(file);
-
-        load(new InputStreamReader(stream, Charsets.UTF_8));
-    }
-
-    /**
-     * Loads this {@link FileConfiguration} from the specified stream.
-     * <p>
-     * All the values contained within this configuration will be removed,
-     * leaving only settings and defaults, and the new values will be loaded
-     * from the given stream.
-     *
-     * @param stream Stream to load from
-     * @throws IOException Thrown when the given file cannot be read.
-     * @throws InvalidConfigurationException Thrown when the given file is not
-     *     a valid Configuration.
-     * @throws IllegalArgumentException Thrown when stream is null.
-     * @deprecated This does not consider encoding
-     * @see #load(Reader)
-     */
-    @Deprecated
-    public void load(InputStream stream) throws IOException, InvalidConfigurationException {
-        Validate.notNull(stream, "Stream cannot be null");
 
         load(new InputStreamReader(stream, Charsets.UTF_8));
     }

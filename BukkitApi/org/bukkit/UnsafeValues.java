@@ -2,29 +2,68 @@ package org.bukkit;
 
 import java.util.List;
 
+import org.bukkit.advancement.Advancement;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.material.MaterialData;
+import org.bukkit.plugin.InvalidPluginException;
+import org.bukkit.plugin.PluginDescriptionFile;
 
 /**
- * 这个接口提供可能在特定运行时间内或含有任意意义的数值的转换（即不安全的参数）。
+ * 这个接口提供可能在特定运行时间内或含有任意意义的数值的转换（即不安全的参数）.
  * <p>
- * 这些值的存在形式和行为不能保证在未来的版本可用。可能会非法命名，抛出异常，有误导参数或其他错误。
- * <p>
- * 这个接口只支持内部使用。
- *
- * @deprecated 不受支持{@literal &}只供内部使用
+ * 这些值的存在形式和行为不能保证在未来的版本可用。可能会非法命名，抛出异常，有误导参数或其他错误.
  */
 @Deprecated
 public interface UnsafeValues {
 
-    Material getMaterialFromInternalName(String name);
+    Material toLegacy(Material material);
 
-    List<String> tabCompleteInternalMaterialName(String token, List<String> completions);
+    Material fromLegacy(Material material);
+
+    Material fromLegacy(MaterialData material);
+
+    Material fromLegacy(MaterialData material, boolean itemPriority);
+
+    BlockData fromLegacy(Material material, byte data);
+
+    int getDataVersion();
 
     ItemStack modifyItemStack(ItemStack stack, String arguments);
 
-    Statistic getStatisticFromInternalName(String name);
+    void checkSupported(PluginDescriptionFile pdf) throws InvalidPluginException;
 
-    Achievement getAchievementFromInternalName(String name);
+    byte[] processClass(PluginDescriptionFile pdf, String path, byte[] clazz);
 
-    List<String> tabCompleteInternalStatisticOrAchievementName(String token, List<String> completions);
+    /**
+     * Load an advancement represented by the specified string into the server.
+     * The advancement format is governed by Minecraft and has no specified
+     * layout.
+     * <br>
+     * It is currently a JSON object, as described by the Minecraft Wiki:
+     * http://minecraft.gamepedia.com/Advancements
+     * <br>
+     * Loaded advancements will be stored and persisted across server restarts
+     * and reloads.
+     * <br>
+     * Callers should be prepared for {@link Exception} to be thrown.
+     *
+     * @param key the unique advancement key
+     * @param advancement representation of the advancement
+     * @return the loaded advancement or null if an error occurred
+     */
+    Advancement loadAdvancement(NamespacedKey key, String advancement);
+
+    /**
+     * Delete an advancement which was loaded and saved by
+     * {@link #loadAdvancement(org.bukkit.NamespacedKey, java.lang.String)}.
+     * <br>
+     * This method will only remove advancement from persistent storage. It
+     * should be accompanied by a call to {@link Server#reloadData()} in order
+     * to fully remove it from the running instance.
+     *
+     * @param key the unique advancement key
+     * @return true if a file matching this key was found and deleted
+     */
+    boolean removeAdvancement(NamespacedKey key);
 }

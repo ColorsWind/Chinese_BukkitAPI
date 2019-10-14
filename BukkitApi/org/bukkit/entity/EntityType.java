@@ -24,181 +24,253 @@ public enum EntityType {
      * Spawn with {@link World#dropItem(Location, ItemStack)} or {@link
      * World#dropItemNaturally(Location, ItemStack)}
      */
-    DROPPED_ITEM("Item", Item.class, 1, false),
+    DROPPED_ITEM("item", Item.class, 1, false),
     /**
      * An experience orb.
      */
-    EXPERIENCE_ORB("XPOrb", ExperienceOrb.class, 2),
+    EXPERIENCE_ORB("experience_orb", ExperienceOrb.class, 2),
+    /**
+     * @see AreaEffectCloud
+     */
+    AREA_EFFECT_CLOUD("area_effect_cloud", AreaEffectCloud.class, 3),
+    /**
+     * @see ElderGuardian
+     */
+    ELDER_GUARDIAN("elder_guardian", ElderGuardian.class, 4),
+    /**
+     * @see WitherSkeleton
+     */
+    WITHER_SKELETON("wither_skeleton", WitherSkeleton.class, 5),
+    /**
+     * @see Stray
+     */
+    STRAY("stray", Stray.class, 6),
+    /**
+     * A flying chicken egg.
+     */
+    EGG("egg", Egg.class, 7),
     /**
      * A leash attached to a fencepost.
      */
-    LEASH_HITCH("LeashKnot", LeashHitch.class, 8),
+    LEASH_HITCH("leash_knot", LeashHitch.class, 8),
     /**
      * A painting on a wall.
      */
-    PAINTING("Painting", Painting.class, 9),
+    PAINTING("painting", Painting.class, 9),
     /**
      * An arrow projectile; may get stuck in the ground.
      */
-    ARROW("Arrow", Arrow.class, 10),
+    ARROW("arrow", Arrow.class, 10),
     /**
      * A flying snowball.
      */
-    SNOWBALL("Snowball", Snowball.class, 11),
+    SNOWBALL("snowball", Snowball.class, 11),
     /**
      * A flying large fireball, as thrown by a Ghast for example.
      */
-    FIREBALL("Fireball", LargeFireball.class, 12),
+    FIREBALL("fireball", LargeFireball.class, 12),
     /**
      * A flying small fireball, such as thrown by a Blaze or player.
      */
-    SMALL_FIREBALL("SmallFireball", SmallFireball.class, 13),
+    SMALL_FIREBALL("small_fireball", SmallFireball.class, 13),
     /**
      * A flying ender pearl.
      */
-    ENDER_PEARL("ThrownEnderpearl", EnderPearl.class, 14),
+    ENDER_PEARL("ender_pearl", EnderPearl.class, 14),
     /**
      * An ender eye signal.
      */
-    ENDER_SIGNAL("EyeOfEnderSignal", EnderSignal.class, 15),
+    ENDER_SIGNAL("eye_of_ender", EnderSignal.class, 15),
+    /**
+     * A flying splash potion.
+     */
+    SPLASH_POTION("potion", SplashPotion.class, 16, false),
     /**
      * A flying experience bottle.
      */
-    THROWN_EXP_BOTTLE("ThrownExpBottle", ThrownExpBottle.class, 17),
+    THROWN_EXP_BOTTLE("experience_bottle", ThrownExpBottle.class, 17),
     /**
      * An item frame on a wall.
      */
-    ITEM_FRAME("ItemFrame", ItemFrame.class, 18),
+    ITEM_FRAME("item_frame", ItemFrame.class, 18),
     /**
      * A flying wither skull projectile.
      */
-    WITHER_SKULL("WitherSkull", WitherSkull.class, 19),
+    WITHER_SKULL("wither_skull", WitherSkull.class, 19),
     /**
      * Primed TNT that is about to explode.
      */
-    PRIMED_TNT("PrimedTnt", TNTPrimed.class, 20),
+    PRIMED_TNT("tnt", TNTPrimed.class, 20),
     /**
      * A block that is going to or is about to fall.
      */
-    FALLING_BLOCK("FallingSand", FallingBlock.class, 21, false),
+    FALLING_BLOCK("falling_block", FallingBlock.class, 21, false),
     /**
      * Internal representation of a Firework once it has been launched.
      */
-    FIREWORK("FireworksRocketEntity", Firework.class, 22, false),
+    FIREWORK("firework_rocket", Firework.class, 22, false),
     /**
-     * Like {@link #ARROW} but tipped with a specific potion which is applied on contact.
+     * @see Husk
      */
-    TIPPED_ARROW("TippedArrow", TippedArrow.class, 23),
+    HUSK("husk", Husk.class, 23),
     /**
      * Like {@link #TIPPED_ARROW} but causes the {@link PotionEffectType#GLOWING} effect on all team members.
      */
-    SPECTRAL_ARROW("SpectralArrow", SpectralArrow.class, 24),
+    SPECTRAL_ARROW("spectral_arrow", SpectralArrow.class, 24),
     /**
      * Bullet fired by {@link #SHULKER}.
      */
-    SHULKER_BULLET("ShulkerBullet", ShulkerBullet.class, 25),
+    SHULKER_BULLET("shulker_bullet", ShulkerBullet.class, 25),
     /**
      * Like {@link #FIREBALL} but with added effects.
      */
-    DRAGON_FIREBALL("DragonFireball", DragonFireball.class, 26),
+    DRAGON_FIREBALL("dragon_fireball", DragonFireball.class, 26),
+    /**
+     * @see ZombieVillager
+     */
+    ZOMBIE_VILLAGER("zombie_villager", ZombieVillager.class, 27),
+    /**
+     * @see SkeletonHorse
+     */
+    SKELETON_HORSE("skeleton_horse", SkeletonHorse.class, 28),
+    /**
+     * @see ZombieHorse
+     */
+    ZOMBIE_HORSE("zombie_horse", ZombieHorse.class, 29),
     /**
      * Mechanical entity with an inventory for placing weapons / armor into.
      */
-    ARMOR_STAND("ArmorStand", ArmorStand.class, 30),
+    ARMOR_STAND("armor_stand", ArmorStand.class, 30),
+    /**
+     * @see Donkey
+     */
+    DONKEY("donkey", Donkey.class, 31),
+    /**
+     * @see Mule
+     */
+    MULE("mule", Mule.class, 32),
+    /**
+     * @see EvokerFangs
+     */
+    EVOKER_FANGS("evoker_fangs", EvokerFangs.class, 33),
+    /**
+     * @see Evoker
+     */
+    EVOKER("evoker", Evoker.class, 34),
+    /**
+     * @see Vex
+     */
+    VEX("vex", Vex.class, 35),
+    /**
+     * @see Vindicator
+     */
+    VINDICATOR("vindicator", Vindicator.class, 36),
+    /**
+     * @see Illusioner
+     */
+    ILLUSIONER("illusioner", Illusioner.class, 37),
     /**
      * @see CommandMinecart
      */
-    MINECART_COMMAND("MinecartCommandBlock", CommandMinecart.class, 40),
+    MINECART_COMMAND("command_block_minecart", CommandMinecart.class, 40),
     /**
      * A placed boat.
      */
-    BOAT("Boat", Boat.class, 41),
+    BOAT("boat", Boat.class, 41),
     /**
      * @see RideableMinecart
      */
-    MINECART("MinecartRideable", RideableMinecart.class, 42),
+    MINECART("minecart", RideableMinecart.class, 42),
     /**
      * @see StorageMinecart
      */
-    MINECART_CHEST("MinecartChest", StorageMinecart.class, 43),
+    MINECART_CHEST("chest_minecart", StorageMinecart.class, 43),
     /**
      * @see PoweredMinecart
      */
-    MINECART_FURNACE("MinecartFurnace", PoweredMinecart.class, 44),
+    MINECART_FURNACE("furnace_minecart", PoweredMinecart.class, 44),
     /**
      * @see ExplosiveMinecart
      */
-    MINECART_TNT("MinecartTNT", ExplosiveMinecart.class, 45),
+    MINECART_TNT("tnt_minecart", ExplosiveMinecart.class, 45),
     /**
      * @see HopperMinecart
      */
-    MINECART_HOPPER("MinecartHopper", HopperMinecart.class, 46),
+    MINECART_HOPPER("hopper_minecart", HopperMinecart.class, 46),
     /**
      * @see SpawnerMinecart
      */
-    MINECART_MOB_SPAWNER("MinecartMobSpawner", SpawnerMinecart.class, 47),
-    CREEPER("Creeper", Creeper.class, 50),
-    SKELETON("Skeleton", Skeleton.class, 51),
-    SPIDER("Spider", Spider.class, 52),
-    GIANT("Giant", Giant.class, 53),
-    ZOMBIE("Zombie", Zombie.class, 54),
-    SLIME("Slime", Slime.class, 55),
-    GHAST("Ghast", Ghast.class, 56),
-    PIG_ZOMBIE("PigZombie", PigZombie.class, 57),
-    ENDERMAN("Enderman", Enderman.class, 58),
-    CAVE_SPIDER("CaveSpider", CaveSpider.class, 59),
-    SILVERFISH("Silverfish", Silverfish.class, 60),
-    BLAZE("Blaze", Blaze.class, 61),
-    MAGMA_CUBE("LavaSlime", MagmaCube.class, 62),
-    ENDER_DRAGON("EnderDragon", EnderDragon.class, 63),
-    WITHER("WitherBoss", Wither.class, 64),
-    BAT("Bat", Bat.class, 65),
-    WITCH("Witch", Witch.class, 66),
-    ENDERMITE("Endermite", Endermite.class, 67),
-    GUARDIAN("Guardian", Guardian.class, 68),
-    SHULKER("Shulker", Shulker.class, 69),
-    PIG("Pig", Pig.class, 90),
-    SHEEP("Sheep", Sheep.class, 91),
-    COW("Cow", Cow.class, 92),
-    CHICKEN("Chicken", Chicken.class, 93),
-    SQUID("Squid", Squid.class, 94),
-    WOLF("Wolf", Wolf.class, 95),
-    MUSHROOM_COW("MushroomCow", MushroomCow.class, 96),
-    SNOWMAN("SnowMan", Snowman.class, 97),
-    OCELOT("Ozelot", Ocelot.class, 98),
-    IRON_GOLEM("VillagerGolem", IronGolem.class, 99),
-    HORSE("EntityHorse", Horse.class, 100),
-    RABBIT("Rabbit", Rabbit.class, 101),
-    POLAR_BEAR("PolarBear", PolarBear.class, 102),
-    VILLAGER("Villager", Villager.class, 120),
-    ENDER_CRYSTAL("EnderCrystal", EnderCrystal.class, 200),
+    MINECART_MOB_SPAWNER("spawner_minecart", SpawnerMinecart.class, 47),
+    CREEPER("creeper", Creeper.class, 50),
+    SKELETON("skeleton", Skeleton.class, 51),
+    SPIDER("spider", Spider.class, 52),
+    GIANT("giant", Giant.class, 53),
+    ZOMBIE("zombie", Zombie.class, 54),
+    SLIME("slime", Slime.class, 55),
+    GHAST("ghast", Ghast.class, 56),
+    PIG_ZOMBIE("zombie_pigman", PigZombie.class, 57),
+    ENDERMAN("enderman", Enderman.class, 58),
+    CAVE_SPIDER("cave_spider", CaveSpider.class, 59),
+    SILVERFISH("silverfish", Silverfish.class, 60),
+    BLAZE("blaze", Blaze.class, 61),
+    MAGMA_CUBE("magma_cube", MagmaCube.class, 62),
+    ENDER_DRAGON("ender_dragon", EnderDragon.class, 63),
+    WITHER("wither", Wither.class, 64),
+    BAT("bat", Bat.class, 65),
+    WITCH("witch", Witch.class, 66),
+    ENDERMITE("endermite", Endermite.class, 67),
+    GUARDIAN("guardian", Guardian.class, 68),
+    SHULKER("shulker", Shulker.class, 69),
+    PIG("pig", Pig.class, 90),
+    SHEEP("sheep", Sheep.class, 91),
+    COW("cow", Cow.class, 92),
+    CHICKEN("chicken", Chicken.class, 93),
+    SQUID("squid", Squid.class, 94),
+    WOLF("wolf", Wolf.class, 95),
+    MUSHROOM_COW("mooshroom", MushroomCow.class, 96),
+    SNOWMAN("snow_golem", Snowman.class, 97),
+    OCELOT("ocelot", Ocelot.class, 98),
+    IRON_GOLEM("iron_golem", IronGolem.class, 99),
+    HORSE("horse", Horse.class, 100),
+    RABBIT("rabbit", Rabbit.class, 101),
+    POLAR_BEAR("polar_bear", PolarBear.class, 102),
+    LLAMA("llama", Llama.class, 103),
+    LLAMA_SPIT("llama_spit", LlamaSpit.class, 104),
+    PARROT("parrot", Parrot.class, 105),
+    VILLAGER("villager", Villager.class, 120),
+    ENDER_CRYSTAL("end_crystal", EnderCrystal.class, 200),
+    TURTLE("turtle", Turtle.class, -1),
+    PHANTOM("phantom", Phantom.class, -1),
+    TRIDENT("trident", Trident.class, -1),
+    COD("cod", Cod.class, -1),
+    SALMON("salmon", Salmon.class, -1),
+    PUFFERFISH("pufferfish", PufferFish.class, -1),
+    TROPICAL_FISH("tropical_fish", TropicalFish.class, -1),
+    DROWNED("drowned", Drowned.class, -1),
+    DOLPHIN("dolphin", Dolphin.class, -1),
     // These don't have an entity ID in nms.EntityTypes.
-    /**
-     * A flying splash potion
-     */
-    SPLASH_POTION(null, SplashPotion.class, -1, false),
     /**
      * A flying lingering potion
      */
     LINGERING_POTION(null, LingeringPotion.class, -1, false),
-    AREA_EFFECT_CLOUD(null, AreaEffectCloud.class, -1),
-    /**
-     * A flying chicken egg.
-     */
-    EGG(null, Egg.class, -1, false),
     /**
      * A fishing line and bobber.
      */
-    FISHING_HOOK(null, Fish.class, -1, false),
+    FISHING_HOOK("fishing_bobber", FishHook.class, -1, false),
     /**
      * A bolt of lightning.
      * <p>
      * Spawn with {@link World#strikeLightning(Location)}.
      */
-    LIGHTNING(null, LightningStrike.class, -1, false),
+    LIGHTNING("lightning_bolt", LightningStrike.class, -1, false),
     WEATHER(null, Weather.class, -1, false),
-    PLAYER(null, Player.class, -1, false),
+    PLAYER("player", Player.class, -1, false),
     COMPLEX_PART(null, ComplexEntityPart.class, -1, false),
+    /**
+     * Like {@link #ARROW} but tipped with a specific potion which is applied on
+     * contact.
+     */
+    TIPPED_ARROW(null, TippedArrow.class, -1),
     /**
      * An unknown entity without an Entity Class
      */
@@ -221,6 +293,20 @@ public enum EntityType {
                 ID_MAP.put(type.typeId, type);
             }
         }
+
+        // Add legacy names
+        NAME_MAP.put("xp_orb", EXPERIENCE_ORB);
+        NAME_MAP.put("eye_of_ender_signal", ENDER_SIGNAL);
+        NAME_MAP.put("xp_bottle", THROWN_EXP_BOTTLE);
+        NAME_MAP.put("fireworks_rocket", FIREWORK);
+        NAME_MAP.put("evocation_fangs", EVOKER_FANGS);
+        NAME_MAP.put("evocation_illager", EVOKER);
+        NAME_MAP.put("vindication_illager", VINDICATOR);
+        NAME_MAP.put("illusion_illager", ILLUSIONER);
+        NAME_MAP.put("commandblock_minecart", MINECART_COMMAND);
+        NAME_MAP.put("snowman", SNOWMAN);
+        NAME_MAP.put("villager_golem", IRON_GOLEM);
+        NAME_MAP.put("ender_crystal", ENDER_CRYSTAL);
     }
 
     private EntityType(String name, Class<? extends Entity> clazz, int typeId) {

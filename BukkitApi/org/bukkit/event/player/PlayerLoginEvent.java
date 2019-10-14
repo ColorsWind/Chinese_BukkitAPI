@@ -6,7 +6,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 
 /**
- * 玩家尝试登录的事件
+ * 玩家尝试登录的事件.
+ * <br>
+ * Note that this event is called <i>early</i> in the player initialization
+ * process. It is recommended that most options involving the Player
+ * <i>entity</i> be postponed to the {@link PlayerJoinEvent} instead.
  */
 public class PlayerLoginEvent extends PlayerEvent {
     private static final HandlerList handlers = new HandlerList();
@@ -14,25 +18,6 @@ public class PlayerLoginEvent extends PlayerEvent {
     private final String hostname;
     private Result result = Result.ALLOWED;
     private String message = "";
-
-    /**
-     * @deprecated IP地址应在其他构造器被提供
-     * @param player 这个事件的{@link Player 玩家}
-     */
-    @Deprecated
-    public PlayerLoginEvent(final Player player) {
-        this(player, "", null);
-    }
-
-    /**
-     * @deprecated IP地址应在其他构造器被提供
-     * @param player 这个事件的{@link Player 玩家}
-     * @param hostname 用于连接服务器的主机名
-     */
-    @Deprecated
-    public PlayerLoginEvent(final Player player, final String hostname) {
-        this(player, hostname, null);
-    }
 
     /**
      * 这个构造器默认踢出消息为空、登录状态为ALLOWED
@@ -49,17 +34,6 @@ public class PlayerLoginEvent extends PlayerEvent {
         super(player);
         this.hostname = hostname;
         this.address = address;
-    }
-
-    /**
-     * @deprecated IP地址应在其他构造器被提供
-     * @param player 这个事件的{@link Player 玩家}
-     * @param result 事件的登录状态结果
-     * @param message 拒绝登录时显示的消息
-     */
-    @Deprecated
-    public PlayerLoginEvent(final Player player, final Result result, final String message) {
-        this(player, "", null, result, message);
     }
 
     /**

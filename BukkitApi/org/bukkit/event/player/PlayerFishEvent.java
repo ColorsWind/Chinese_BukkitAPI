@@ -1,13 +1,13 @@
 package org.bukkit.event.player;
 
-import org.bukkit.entity.Fish;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.FishHook;
 import org.bukkit.event.HandlerList;
 
 /**
- * 当玩家钓鱼时触发本事件
+ * 当玩家钓鱼时触发本事件.
  */
 public class PlayerFishEvent extends PlayerEvent implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
@@ -15,21 +15,9 @@ public class PlayerFishEvent extends PlayerEvent implements Cancellable {
     private boolean cancel = false;
     private int exp;
     private final State state;
-    private final Fish hookEntity;
+    private final FishHook hookEntity;
 
-    /**
-     * @deprecated 已被{@link #PlayerFishEvent(Player, Entity, Fish,
-     *     State)}取代，以包含{@link Fish 上钩的实体}
-     * @param player 正在钓鱼的玩家
-     * @param entity 捕捉到的实体
-     * @param state 钓鱼状态
-     */
-    @Deprecated
-    public PlayerFishEvent(final Player player, final Entity entity, final State state) {
-        this(player, entity, null, state);
-    }
-
-    public PlayerFishEvent(final Player player, final Entity entity, final Fish hookEntity, final State state) {
+    public PlayerFishEvent(final Player player, final Entity entity, final FishHook hookEntity, final State state) {
         super(player);
         this.entity = entity;
         this.hookEntity = hookEntity;
@@ -54,7 +42,7 @@ public class PlayerFishEvent extends PlayerEvent implements Cancellable {
      *
      * @return Fish the entity representing the fishing hook/bobber.
      */
-    public Fish getHook() {
+    public FishHook getHook() {
         return hookEntity;
     }
 
@@ -118,24 +106,29 @@ public class PlayerFishEvent extends PlayerEvent implements Cancellable {
          */
         FISHING,
         /**
-         * When a player has successfully caught a fish and is reeling it in.
+         * When a player has successfully caught a fish and is reeling it in. In
+         * this instance, a "fish" is any item retrieved from water as a result
+         * of fishing, ie an item, but not necessarily a fish.
          */
         CAUGHT_FISH,
         /**
-         * When a player has successfully caught an entity
+         * When a player has successfully caught an entity. This refers to any
+         * already spawned entity in the world that has been hooked directly by
+         * the rod.
          */
         CAUGHT_ENTITY,
         /**
-         * When a bobber is stuck in the ground
+         * When a bobber is stuck in the ground.
          */
         IN_GROUND,
         /**
          * When a player fails to catch anything while fishing usually due to
-         * poor aiming or timing
+         * poor aiming or timing.
          */
         FAILED_ATTEMPT,
         /**
-         * Called when there is a bite on the hook and it is ready to be reeled in.
+         * Called when there is a bite on the hook and it is ready to be reeled
+         * in.
          */
         BITE
     }
